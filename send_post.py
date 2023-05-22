@@ -1,7 +1,6 @@
 import argparse
 import orjson
 import time
-from scene_map import scene_map
 from log import get_logger
 import redis
 from image_utils import base642image,image2base64
@@ -13,6 +12,7 @@ import json
 import orjson
 import os
 from datetime import datetime
+import cv2
 logger = get_logger(__file__) 
 
 
@@ -58,12 +58,14 @@ class Event_Sender(threading.Thread):
         print(self.event_time)
         for l in self.result:
             for _r in l:
-                print(l[_r]['detection'])
+                print(f"{_r}:{l[_r]['detection']}")
+                if l[_r]['img']:
+                    cv2.imwrite('./result/'+_r+'.jpg',base642image(l[_r]['img']))
         
 
 class SendPost(object):
 
-    def __init__(self,source_url,scene,model_list,model_conf):
+    def __init__(self,source_url,forever,scene,model_list,model_conf):
         self.detection_list = ['http://0.0.0.0:'+str(model_conf[m]['port'])+'/test' for m in model_list]
         self.source_url = source_url
         self.model_list = model_list
@@ -71,14 +73,17 @@ class SendPost(object):
         self.redis_con = redis.Redis(host='0.0.0.0',
                         password='foster123456',
                         decode_responses=True,socket_timeout=30)
+        self.forever = forever
 
     def read_rtsp_frame(self,key):
         return orjson.loads(self.redis_con.get(key))
          
     def run(self):
         if self.source_url.startswith('rtsp'):
-            self.run_rtsp()
-
+            if self.forever:
+                self.run_rtsp_gpu()
+            else:
+                self.run_rtsp_cpu()
         elif self.source_url.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', 
                                                '.pbm', '.pgm', '.ppm', '.tif', '.tiff')):
             self.run_pic(self.source_url)
@@ -93,8 +98,14 @@ class SendPost(object):
     def run_pic(self,file_path):
         img = cv2.imread(file_path)
         self.detect_and_send(datetime.now(),img)
+    
+    def run_rtsp_cpu(self):
+        cap = cv2.VideoCapture(self.source_url)
+        ret,img = cap.read()
+        self.detect_and_send(datetime.now(),img)
+
             
-    def run_rtsp(self):
+    def run_rtsp_gpu(self):
         ip = self.source_url.split('@')[-1]
         key = 'frame_'+ip
         read_fail_time = 0
@@ -144,14 +155,11 @@ class SendPost(object):
 
 
 
-
-
-
-
 def parse_opt():
     parser = argparse.ArgumentParser()
     # parser.add_argument('--source_type', type=str, default='rtsp', help='detection type')
     parser.add_argument('--source_url',type=str,  help='source url')
+    parser.add_argument('--forever', action=argparse.BooleanOptionalAction,default=True)
     parser.add_argument('--scene',type=str,default='voltage_line_matter',help='scene')
     opt = parser.parse_args()
     return opt
@@ -163,13 +171,15 @@ def main():
     print(opt)
     # time.sleep(30)
     scene = opt['scene'].strip()
+    with open('scene_map.cfg') as f:
+        scene_map = json.load(f)
     model_list = scene_map.get(scene,None)
     if not model_list:
         logger.error('scene is not correct')
         return 0     
     with open("model_conf.cfg") as f:
         model_conf = json.load(f)
-    sp = SendPost(opt['source_url'],scene,model_list,model_conf)
+    sp = SendPost(opt['source_url'],opt['forever'],scene,model_list,model_conf)
     sp.run()
     
 
