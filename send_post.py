@@ -60,7 +60,7 @@ class Event_Sender(threading.Thread):
             for _r in l:
                 print(f"{_r}:{l[_r]['detection']}")
                 if l[_r]['img']:
-                    cv2.imwrite('./result/'+_r+'.jpg',base642image(l[_r]['img']))
+                    cv2.imwrite('./result/'+_r+f'{datetime.now()}.jpg',base642image(l[_r]['img']))
         
 
 class SendPost(object):
@@ -93,7 +93,18 @@ class SendPost(object):
                 if filename.lower().endswith(('.bmp', '.dib', '.png', '.jpg', '.jpeg', 
                                                '.pbm', '.pgm', '.ppm', '.tif', '.tiff')):
                     self.run_pic(os.path.join(self.source_url,filename))
-                
+        elif self.source_url.lower().endswith('mp4'):
+            self.run_mp4_cpu()
+        else: 
+            return 0
+    
+    def run_mp4_cpu(self):
+        cap = cv2.VideoCapture(self.source_url)
+        while(cap.isOpened()):
+            ret, img = cap.read()
+            self.detect_and_send(datetime.now(),img)
+
+
 
     def run_pic(self,file_path):
         img = cv2.imread(file_path)
