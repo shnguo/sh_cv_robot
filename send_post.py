@@ -19,8 +19,8 @@ logger = get_logger(__file__)
 class Detection_Post(threading.Thread):
     def __init__(self,img_raw_cv,url):
         threading.Thread.__init__(self)
-        self.img_raw = cv2.cvtColor(img_raw_cv, cv2.COLOR_RGB2BGR)
-        self.img_raw_b64 = image2base64(self.img_raw)
+        # self.img_raw = cv2.cvtColor(img_raw_cv, cv2.COLOR_RGB2BGR)
+        self.img_raw_b64 = image2base64(img_raw_cv)
         self.url = url
 
     def run(self):
@@ -48,19 +48,26 @@ class Event_Sender(threading.Thread):
         self.event_time = event_time
         self.result = result
         self.dispatch = {
-            'voltage_line_matter':self.voltage_line_matter
+            'voltage_line_matter':self.common_solver,
+            'oil':self.common_solver,
+            'smoke':self.common_solver,
         }
     
     def run(self):
         self.dispatch[self.scene]()
     
-    def voltage_line_matter(self):
+    def common_solver(self):
         print(self.event_time)
         for l in self.result:
             for _r in l:
                 print(f"{_r}:{l[_r]['detection']}")
                 if l[_r]['img']:
+                    # img = cv2.cvtColor(base642image(l[_r]['img']),cv2.COLOR_RGB2BGR)
                     cv2.imwrite('./result/'+_r+f'{datetime.now()}.jpg',base642image(l[_r]['img']))
+
+    
+    
+
         
 
 class SendPost(object):
@@ -102,6 +109,7 @@ class SendPost(object):
         cap = cv2.VideoCapture(self.source_url)
         while(cap.isOpened()):
             ret, img = cap.read()
+            img  = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
             self.detect_and_send(datetime.now(),img)
 
 
@@ -113,6 +121,7 @@ class SendPost(object):
     def run_rtsp_cpu(self):
         cap = cv2.VideoCapture(self.source_url)
         ret,img = cap.read()
+        img  = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
         self.detect_and_send(datetime.now(),img)
 
             
@@ -146,6 +155,7 @@ class SendPost(object):
             read_update_fail_time = 0
             pre_read_time = frame_info_dict['now_time']
             img_raw_cv = base642image(frame_info_dict['img'])
+            img_raw_cv  = cv2.cvtColor(img_raw_cv,cv2.COLOR_RGB2BGR)
             self.detect_and_send(frame_info_dict['now_time'],img_raw_cv)
 
 
