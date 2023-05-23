@@ -13,6 +13,7 @@ import orjson
 import os
 from datetime import datetime
 import cv2
+import numpy as np
 logger = get_logger(__file__) 
 
 
@@ -51,6 +52,11 @@ class Event_Sender(threading.Thread):
             'voltage_line_matter':self.common_solver,
             'oil':self.common_solver,
             'smoke':self.common_solver,
+            'helmet':self.helmet,
+            'suit':self.suit,
+            'smoking':self.smoking,
+            'insulator_broken':self.insulator_broken,
+            'insulator_stain':self.insulator_stain
         }
     
     def run(self):
@@ -64,6 +70,76 @@ class Event_Sender(threading.Thread):
                 if l[_r]['img']:
                     # img = cv2.cvtColor(base642image(l[_r]['img']),cv2.COLOR_RGB2BGR)
                     cv2.imwrite('./result/'+_r+f'{datetime.now()}.jpg',base642image(l[_r]['img']))
+    
+    def helmet(self):
+        target_dict = self.result[0]['helmet_suit_smoking']
+        if target_dict['img']:
+            check_dict = self.helmet_suit_smoking(target_dict['detection'])
+            if check_dict['helmet']:
+                cv2.imwrite('./result/'+'helmet'+f'{datetime.now()}.jpg',base642image(target_dict['img']))
+    
+    def suit(self):
+        target_dict = self.result[0]['helmet_suit_smoking']
+        if target_dict['img']:
+            check_dict = self.helmet_suit_smoking(target_dict['detection'])
+            if check_dict['suit']:
+                cv2.imwrite('./result/'+'suit'+f'{datetime.now()}.jpg',base642image(target_dict['img']))
+
+    def smoking(self):
+        target_dict = self.result[0]['helmet_suit_smoking']
+        if target_dict['img']:
+            check_dict = self.helmet_suit_smoking(target_dict['detection'])
+            if check_dict['smoking']:
+                cv2.imwrite('./result/'+'smoking'+f'{datetime.now()}.jpg',base642image(target_dict['img']))
+    
+    def insulator_broken(self):
+        target_dict = self.result[0]['insulator']
+        if target_dict['img']:
+            check_dict = self.helmet_suit_smoking(target_dict['detection'])
+            if check_dict['insulator_broken']:
+                cv2.imwrite('./result/'+'insulator_broken'+f'{datetime.now()}.jpg',base642image(target_dict['img']))
+
+    def insulator_stain(self):
+        target_dict = self.result[0]['insulator']
+        if target_dict['img']:
+            check_dict = self.helmet_suit_smoking(target_dict['detection'])
+            if check_dict['insulator_stain']:
+                cv2.imwrite('./result/'+'insulator_stain'+f'{datetime.now()}.jpg',base642image(target_dict['img']))
+
+
+    def helmet_suit_smoking(self,detection_list,confidence_level=0.5):
+        check_dict = {
+        'helmet': False,
+        'suit': False,
+        'smoking': False
+    }
+        detection_list = np.array([s.split('_') for s in detection_list]).astype(float)
+        detection_list = detection_list[detection_list[:, 1] > confidence_level, :]
+        unique, counts = np.unique(detection_list[:, 0], return_counts=True)
+        if (1 in unique) and (0 in unique) and (counts[0] < counts[1]):
+            check_dict['helmet'] = True
+        if ((1 in unique) and (2 in unique)) or ((1 in unique) and (3 in unique)):
+            check_dict['suit'] = True
+        if (1 in unique) and (4 in unique):
+            check_dict['smoking'] =  True
+        return check_dict
+    
+    def insulator(self,detection_list,confidence_level=0.5):
+        check_dict = {
+        'insulator_broken': False,
+        'insulator_stain': False
+    }
+        ls = np.array([s.split('_') for s in ls]).astype(float)
+        ls = ls[ls[:, 1] > confidence_level, :]
+        unique, counts = np.unique(ls[:, 0], return_counts=True)
+        if (3 in unique) and (0 in unique):
+            check_dict['insulator_broken'] = True
+        if (3 in unique) and (1 in unique):
+            check_dict['insulator_stain'] = True
+        return check_dict
+
+
+
 
     
     
