@@ -14,8 +14,9 @@ import os
 from datetime import datetime
 import cv2
 import numpy as np
+import requests
 logger = get_logger(__file__) 
-
+base_path = os.path.dirname(os.path.abspath(__file__))
 
 class Detection_Post(threading.Thread):
     def __init__(self,img_raw_cv,url):
@@ -43,10 +44,11 @@ class Detection_Post(threading.Thread):
 
 class Event_Sender(threading.Thread):
 
-    def __init__(self,scene,event_time,result):
+    def __init__(self,scene,event_time,result,**kwargs):
         threading.Thread.__init__(self)
         self.scene=scene
         self.event_time = event_time
+        self.timestamp = int(round(datetime.strptime(event_time,"%Y-%m-%d %H:%M:%S:%f").timestamp()))
         self.result = result
         self.dispatch = {
             'voltage_line_matter':self.common_solver,
@@ -58,97 +60,227 @@ class Event_Sender(threading.Thread):
             'insulator_broken':self.insulator_broken,
             'insulator_stain':self.insulator_stain
         }
+        self.url = "http://192.168.0.192:8090/api/v1/result"
+        self.kwargs = kwargs
     
     def run(self):
         self.dispatch[self.scene]()
     
+    def post_report(self,img,result,model_name):
+        image = ''
+        if img.any() and result:
+            image=image2base64(img)
+            cv2.imwrite(os.path.join(base_path,'./result/'+model_name+f'{datetime.now()}.jpg'),img)
+        data = {
+            'date':self.timestamp,
+            'image':image,
+            'result':result,
+             "history_info_id":self.kwargs['history_info_id'],
+             "history_type":self.kwargs["history_type"]
+        }
+        # print(data)
+        try:
+            requests.post(self.url,json=data,timeout=60)
+        except Exception as e:
+            logger.error(e)
+
+
+    
     def common_solver(self):
-        print(self.event_time)
+        post_result = 0
         for l in self.result:
             for _r in l:
                 print(f"{_r}:{l[_r]['detection']}")
                 if l[_r]['img']:
-                    # img = cv2.cvtColor(base642image(l[_r]['img']),cv2.COLOR_RGB2BGR)
-                    cv2.imwrite('./result/'+_r+f'{datetime.now()}.jpg',base642image(l[_r]['img']))
+                    post_result = 1
+                    img = base642image(l[_r]['img'])
+                    for _info in l[_r]["detection"]:
+                        _info_list = _info.split('_')
+                        cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
+                                    (0, 0, 255),thickness=2)
+                    self.post_report(img,post_result,_r) 
+        if  post_result==0:
+            self.post_report([],post_result,'')               
+                    
     
     def helmet(self):
+        post_result = 0
         target_dict = self.result[0]['helmet_suit_smoking']
         if target_dict['img']:
-            check_dict = self.helmet_suit_smoking(target_dict['detection'])
-            if check_dict['helmet']:
-                cv2.imwrite('./result/'+'helmet'+f'{datetime.now()}.jpg',base642image(target_dict['img']))
+            sign, img = self.helmet_suit_smoking(target_dict['detection'],target='helmet',img = base642image(target_dict['img']))
+            if sign:
+                post_result=1
+            self.post_report(img,post_result,'helmet') 
+        else:
+            self.post_report([],post_result,'')
     
     def suit(self):
+        post_result = 0
         target_dict = self.result[0]['helmet_suit_smoking']
         if target_dict['img']:
-            check_dict = self.helmet_suit_smoking(target_dict['detection'])
-            if check_dict['suit']:
-                cv2.imwrite('./result/'+'suit'+f'{datetime.now()}.jpg',base642image(target_dict['img']))
+            sign, img = self.helmet_suit_smoking(target_dict['detection'],target='suit',img = base642image(target_dict['img']))
+            if sign:
+                post_result=1
+            self.post_report(img,post_result,'suit') 
+        else:
+            self.post_report([],post_result,'')
 
     def smoking(self):
+        post_result=0
         target_dict = self.result[0]['helmet_suit_smoking']
         if target_dict['img']:
-            check_dict = self.helmet_suit_smoking(target_dict['detection'])
-            if check_dict['smoking']:
-                cv2.imwrite('./result/'+'smoking'+f'{datetime.now()}.jpg',base642image(target_dict['img']))
+            sign, img = self.helmet_suit_smoking(target_dict['detection'],target='smoking',img = base642image(target_dict['img']))
+            if sign:
+                post_result=1
+            self.post_report(img,post_result,'suit') 
+        else:
+            self.post_report([],post_result,'')
     
     def insulator_broken(self):
+        post_result=0
         target_dict = self.result[0]['insulator']
         if target_dict['img']:
-            check_dict = self.helmet_suit_smoking(target_dict['detection'])
-            if check_dict['insulator_broken']:
-                cv2.imwrite('./result/'+'insulator_broken'+f'{datetime.now()}.jpg',base642image(target_dict['img']))
+            sign, img = self.insulator(target_dict['detection'],target='broken',img = base642image(target_dict['img']))
+            if sign:
+                post_result=1
+            self.post_report(img,post_result,'insulator_broken') 
+        else:
+            self.post_report(np.array([]),post_result,'')
 
     def insulator_stain(self):
+        post_result=0
         target_dict = self.result[0]['insulator']
         if target_dict['img']:
-            check_dict = self.helmet_suit_smoking(target_dict['detection'])
-            if check_dict['insulator_stain']:
-                cv2.imwrite('./result/'+'insulator_stain'+f'{datetime.now()}.jpg',base642image(target_dict['img']))
+            sign, img = self.insulator(target_dict['detection'],target='stain',img = base642image(target_dict['img']))
+            if sign:
+                post_result=1
+            self.post_report(img,post_result,'insulator_stain') 
+        else:
+            self.post_report([],post_result,'')
 
-
-    def helmet_suit_smoking(self,detection_list,confidence_level=0.5):
-        check_dict = {
-        'helmet': False,
-        'suit': False,
-        'smoking': False
-    }
-        detection_list = np.array([s.split('_') for s in detection_list]).astype(float)
-        detection_list = detection_list[detection_list[:, 1] > confidence_level, :]
-        unique, counts = np.unique(detection_list[:, 0], return_counts=True)
-        if (1 in unique) and (0 in unique) and (counts[0] < counts[1]):
-            check_dict['helmet'] = True
-        if ((1 in unique) and (2 in unique)) or ((1 in unique) and (3 in unique)):
-            check_dict['suit'] = True
-        if (1 in unique) and (4 in unique):
-            check_dict['smoking'] =  True
-        return check_dict
-    
-    def insulator(self,detection_list,confidence_level=0.5):
-        check_dict = {
-        'insulator_broken': False,
-        'insulator_stain': False
-    }
+    def helmet_suit_smoking(self, ls, target, img, confidence_level=0.5):
         ls = np.array([s.split('_') for s in ls]).astype(float)
         ls = ls[ls[:, 1] > confidence_level, :]
         unique, counts = np.unique(ls[:, 0], return_counts=True)
-        if (3 in unique) and (0 in unique):
-            check_dict['insulator_broken'] = True
-        if (3 in unique) and (1 in unique):
-            check_dict['insulator_stain'] = True
-        return check_dict
-
-
-
-
-    
-    
-
         
+        if target == 'helmet':
+            sign = (1 in unique) and (0 in unique) and (counts[0] < counts[1])
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 1), :]: # plot rectangle for person.
+                img = cv2.rectangle(
+                    img, 
+                    (int(item[2]), int(item[3])), 
+                    (int(item[4]), int(item[5])),
+                    (255, 0, 0),
+                    2
+                )
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 0), :]: # plot rectangle for helmet.
+                img = cv2.rectangle(
+                    img,
+                    (int(item[2]), int(item[3])),
+                    (int(item[4]), int(item[5])),
+                    (225, 225, 0),
+                    2
+                )
+            return sign, img
+        
+        if target == 'suit':
+            sign = ((1 in unique) and (2 in unique)) or ((1 in unique) and (3 in unique))
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 1), :]: # plot rectangle for person.
+                img = cv2.rectangle(
+                    img, 
+                    (int(item[2]), int(item[3])), 
+                    (int(item[4]), int(item[5])),
+                    (0, 255, 0),
+                    2
+                ) 
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 2), :]: # plot rectangle for short sleeve.
+                img = cv2.rectangle(
+                    img,
+                    (int(item[2]), int(item[3])),
+                    (int(item[4]), int(item[5])),
+                    (0, 0, 255),
+                    2
+                )
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 3), :]: # plot rectangle for short pants.
+                img = cv2.rectangle(
+                    img,
+                    (int(item[2]), int(item[3])),
+                    (int(item[4]), int(item[5])),
+                    (0, 0, 225),
+                    2
+                )
+            return sign, img
+        
+        if target == 'smoking':
+            sign = (1 in unique) and (4 in unique)
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 1), :]: # plot rectangle for person.
+                img = cv2.rectangle(
+                    img, 
+                    (int(item[2]), int(item[3])), 
+                    (int(item[4]), int(item[5])),
+                    (0, 255, 0),
+                    2
+                )
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 4), :]: # plot rectangle for cigarette.
+                img = cv2.rectangle(
+                    img, 
+                    (int(item[2]), int(item[3])), 
+                    (int(item[4]), int(item[5])),
+                    (255, 0, 255),
+                    2
+                )
+            return sign, img   
+    
+    def insulator(self, ls, target, img, confidence_level=0.5):
+        ls = np.array([s.split('_') for s in ls]).astype(float)
+        ls = ls[ls[:, 1] > confidence_level, :]
+        unique, counts = np.unique(ls[:, 0], return_counts=True)
+        
+        if target == 'broken':
+            sign = (3 in unique) and (0 in unique)
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 3), :]: # plot rectangle for insulator.
+                img = cv2.rectangle(
+                    img, 
+                    (int(item[2]), int(item[3])), 
+                    (int(item[4]), int(item[5])),
+                    (0, 255, 0),
+                    2
+                )
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 0), :]: # plot rectangle for broken part.
+                img = cv2.rectangle(
+                    img,
+                    (int(item[2]), int(item[3])),
+                    (int(item[4]), int(item[5])),
+                    (0, 0, 255),
+                    2
+                )
+            return sign, img
+        
+        if target == 'stain':
+            sign = (3 in unique) and (1 in unique)
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 3), :]: # plot rectangle for insulator.
+                img = cv2.rectangle(
+                    img, 
+                    (int(item[2]), int(item[3])), 
+                    (int(item[4]), int(item[5])),
+                    (0, 255, 0),
+                    2
+                ) 
+            for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 1), :]: # plot rectangle for stain part.
+                img = cv2.rectangle(
+                    img,
+                    (int(item[2]), int(item[3])),
+                    (int(item[4]), int(item[5])),
+                    (0, 0, 255),
+                    2
+                )
+            return sign, img
+
+      
 
 class SendPost(object):
 
-    def __init__(self,source_url,forever,scene,model_list,model_conf):
+    def __init__(self,source_url,forever,scene,model_list,model_conf,**kwargs):
         self.detection_list = ['http://0.0.0.0:'+str(model_conf[m]['port'])+'/test' for m in model_list]
         self.source_url = source_url
         self.model_list = model_list
@@ -157,6 +289,7 @@ class SendPost(object):
                         password='foster123456',
                         decode_responses=True,socket_timeout=30)
         self.forever = forever
+        self.kwargs = kwargs
 
     def read_rtsp_frame(self,key):
         return orjson.loads(self.redis_con.get(key))
@@ -186,19 +319,19 @@ class SendPost(object):
         while(cap.isOpened()):
             ret, img = cap.read()
             img  = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
-            self.detect_and_send(datetime.now(),img)
+            self.detect_and_send(datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f"),img)
 
 
 
     def run_pic(self,file_path):
         img = cv2.imread(file_path)
-        self.detect_and_send(datetime.now(),img)
+        self.detect_and_send(datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f"),img)
     
     def run_rtsp_cpu(self):
         cap = cv2.VideoCapture(self.source_url)
         ret,img = cap.read()
         img  = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
-        self.detect_and_send(datetime.now(),img)
+        self.detect_and_send(datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f"),img)
 
             
     def run_rtsp_gpu(self):
@@ -245,8 +378,10 @@ class SendPost(object):
         result = []
         for m,t in zip(self.model_list,thread_pool):
             result.append({m:t.get_result()})
-        th = Event_Sender(self.scene,pic_time,result)
+        th = Event_Sender(self.scene,pic_time,result,**self.kwargs)
         th.start()
+        th.join()
+        
                 
 
 
@@ -258,6 +393,8 @@ def parse_opt():
     parser.add_argument('--source_url',type=str,  help='source url')
     parser.add_argument('--forever', action=argparse.BooleanOptionalAction,default=True)
     parser.add_argument('--scene',type=str,default='voltage_line_matter',help='scene')
+    parser.add_argument('--history_info_id',type=int,default=0,help='history_info_id')
+    parser.add_argument('--history_type',type=int,default=0,help='history_type')
     opt = parser.parse_args()
     return opt
  
@@ -267,16 +404,17 @@ def main():
     logger.info('开始检测')
     print(opt)
     # time.sleep(30)
+    base_path = os.path.dirname(os.path.abspath(__file__))
     scene = opt['scene'].strip()
-    with open('scene_map.cfg') as f:
+    with open(os.path.join(base_path,'scene_map.cfg')) as f:
         scene_map = json.load(f)
     model_list = scene_map.get(scene,None)
     if not model_list:
         logger.error('scene is not correct')
         return 0     
-    with open("model_conf.cfg") as f:
+    with open(os.path.join(base_path,"model_conf.cfg")) as f:
         model_conf = json.load(f)
-    sp = SendPost(opt['source_url'],opt['forever'],scene,model_list,model_conf)
+    sp = SendPost(opt['source_url'],opt['forever'],scene,model_list,model_conf,history_info_id=opt['history_info_id'],history_type=opt['history_type'])
     sp.run()
     
 

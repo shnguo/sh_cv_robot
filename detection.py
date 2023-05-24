@@ -73,9 +73,9 @@ class Processor(allspark.BaseProcessor):
                             int(xyxy[1]), int(xyxy[2]), int(xyxy[3])]
                     cur_ = list(map(str, cur_))
                     label_res.append('_'.join(cur_))
-                    cv2.rectangle(image, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])),
-                                  (0, 255, 0),
-                                  thickness=2)
+                    # cv2.rectangle(image, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])),
+                    #               (0, 255, 0),
+                    #               thickness=2)
 
             if flag:
                 # 保存检测结果
@@ -110,7 +110,9 @@ def port_is_used(port, ip='127.0.0.1'):
 if __name__ == '__main__':
     opt = vars(parse_opt())
     print(opt)
-    with open("model_conf.cfg") as f:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+
+    with open(os.path.join(base_path,"model_conf.cfg")) as f:
         model_cfg = json.load(f)
 
     # 部署模型

@@ -20,7 +20,8 @@ def get_logger(log_file_name, log_sub_dir=""):
     """ Creates a Log File and returns Logger object """
     log_file_name = log_file_name.split('.')[0]
     windows_log_dir = 'c:\\logs_dir\\'
-    linux_log_dir = './logs/'
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    linux_log_dir = os.path.join(base_path,"logs")
 
     # Build Log file directory, based on the OS and supplied input
     log_dir = windows_log_dir if os.name == 'nt' else linux_log_dir
