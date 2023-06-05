@@ -90,7 +90,7 @@ class Processor(allspark.BaseProcessor):
                     #               (0, 255, 0),
                     #               thickness=2)
             else:
-                # image = cv2.imdecode(image, cv2.COLOR_RGB2BGR)
+                # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                 sample = self.transforms(Image.fromarray(image)).unsqueeze(0)
                 outputs = self.nonlinear(self.model(sample)).tolist()[0]
                 if outputs[1]>self.confidence:
