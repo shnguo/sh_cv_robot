@@ -2,30 +2,43 @@ import json
 import os.path
 import allspark
 import torch
+from torchvision import transforms
 import cv2
 from image_utils import image2base64, base642image
 import argparse
 import socket
 from ultralytics import YOLO
+from resnet.net import *
+from PIL import Image
 
 torch.backends.cudnn.enabled = False
 
 
 class Processor(allspark.BaseProcessor):
     def __init__(self, worker_threads=8, io_threads=8, worker_processes=1, host_number='9613',
-                 model_path='person.pt', model_type=None, yolo_version='yolov5s'):
+                 model_path='person.pt', model_type=None, yolo_version='yolov5s',confidence=0.5):
         super().__init__(worker_threads=worker_threads, io_threads=io_threads, worker_processes=worker_processes, endpoint=f'0.0.0.0:{host_number}')
         self.model = None
         self.model_path = os.path.join('models/' + yolo_version, model_path)
         self.model_type = model_type
         self.yolo_version = yolo_version
+        self.confidence = confidence
 
     def initialize(self):
         # 加载模型，只运行一次
         if 'yolov5' in self.yolo_version:
             self.model = torch.hub.load('../yolov5', 'custom', path=self.model_path, source='local', force_reload=True)
-        else:
+        elif self.yolo_version=='yolov8':
             self.model = YOLO(self.model_path)
+        else:
+            self.transforms = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(256),
+                transforms.ToTensor(),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+            ])
+            self.model = torch.load(self.model_path)
+            self.nonlinear = nn.Softmax(dim=1)
 
     def process(self, item):
         # 调用模型推理方法，每调用一次会运行一次
@@ -47,7 +60,7 @@ class Processor(allspark.BaseProcessor):
                 for _, row in outs.iterrows():
                     if self.model_type == 'person' and row['class'] != 0:
                         continue
-                    if float(row['confidence']) < 0.5:
+                    if float(row['confidence']) < self.confidence:
                         continue
                     results.print()
                     flag = True
@@ -58,7 +71,7 @@ class Processor(allspark.BaseProcessor):
                     cv2.rectangle(image, (int(row['xmin']), int(row['ymin'])), (int(row['xmax']), int(row['ymax'])),
                                   (0, 255, 0),
                                   thickness=2)
-            else:
+            elif self.yolo_version=='yolov8':
                 # 每次只推理一张图像
                 results = self.model.predict(image)
                 result = results[0].numpy() if self.model.device == 'cpu' else results[0].cpu().numpy()
@@ -66,7 +79,7 @@ class Processor(allspark.BaseProcessor):
                 for xyxy, cls, conf in zip(xyxys, clss, confs):
                     if self.model_type == 'person' and int(cls) != 0:
                         continue
-                    if float(conf) < 0.5:
+                    if float(conf) < self.confidence:
                         continue
                     flag = True
                     cur_ = [cls, float('%.2f' % conf), int(xyxy[0]),
@@ -76,6 +89,13 @@ class Processor(allspark.BaseProcessor):
                     # cv2.rectangle(image, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])),
                     #               (0, 255, 0),
                     #               thickness=2)
+            else:
+                # image = cv2.imdecode(image, cv2.COLOR_RGB2BGR)
+                sample = self.transforms(Image.fromarray(image)).unsqueeze(0)
+                outputs = self.nonlinear(self.model(sample)).tolist()[0]
+                if outputs[1]>self.confidence:
+                    flag = True
+                    label_res.append(f"1_{outputs[1]}")
 
             if flag:
                 # 保存检测结果
@@ -91,7 +111,7 @@ class Processor(allspark.BaseProcessor):
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_type_map', type=str, default='nest', help='Single or multiple choice.')
-    parser.add_argument('--yolo_version', type=str, default='yolov8', help='Detection model.')
+    # parser.add_argument('--yolo_version', type=str, default='yolov8', help='Detection model.')
     opt = parser.parse_args()
     return opt
 
@@ -134,5 +154,5 @@ if __name__ == '__main__':
     worker_processes = model_cfg[model]['model_count']
     process = Processor(worker_threads=worker_threads, io_threads=io_threads, worker_processes=worker_processes,
                         host_number=host_number, model_path=model_path, model_type=model,
-                        yolo_version=opt['yolo_version'])
+                        yolo_version=model_cfg[model]['yolo_version'],confidence=model_cfg[model]['confidence'])
     process.run()

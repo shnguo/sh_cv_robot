@@ -15,7 +15,7 @@ from datetime import datetime
 import cv2
 import numpy as np
 import requests
-logger = get_logger(__file__) 
+logger = get_logger(os.path.basename(__file__))
 base_path = os.path.dirname(os.path.abspath(__file__))
 
 class Detection_Post(threading.Thread):
@@ -58,7 +58,14 @@ class Event_Sender(threading.Thread):
             'suit':self.suit,
             'smoking':self.smoking,
             'insulator_broken':self.insulator_broken,
-            'insulator_stain':self.insulator_stain
+            'insulator_stain':self.insulator_stain,
+            'capacitor_bulge':self.clf_solver,
+            'box_door':self.clf_solver,
+            'blurred_dial':self.clf_solver,
+            'abnormal_meter':self.clf_solver,
+            'silicagel':self.clf_solver,
+            'screen_crash':self.clf_solver,
+            'damaged':self.clf_solver,
         }
         self.url = "http://192.168.0.192:8090/api/v1/result"
         self.kwargs = kwargs
@@ -79,10 +86,10 @@ class Event_Sender(threading.Thread):
              "history_type":self.kwargs["history_type"]
         }
         # print(data)
-        try:
-            requests.post(self.url,json=data,timeout=60)
-        except Exception as e:
-            logger.error(e)
+        # try:
+        #     requests.post(self.url,json=data,timeout=3)
+        # except Exception as e:
+        #     logger.error(e)
 
 
     
@@ -100,7 +107,24 @@ class Event_Sender(threading.Thread):
                                     (0, 0, 255),thickness=2)
                     self.post_report(img,post_result,_r) 
         if  post_result==0:
-            self.post_report([],post_result,'')               
+            self.post_report([],post_result,'')
+
+    def clf_solver(self):
+        post_result = 0
+        for l in self.result:
+            for _r in l:
+                print(f"{_r}:{l[_r]['detection']}")
+                if l[_r]['img']:
+                    post_result = 1
+                    img = base642image(l[_r]['img'])
+                    self.post_report(img,post_result,_r)
+        if  post_result==0:
+            self.post_report([],post_result,'')
+
+
+
+        
+
                     
     
     def helmet(self):
