@@ -3,7 +3,7 @@ import orjson
 import time
 from log import get_logger
 import redis
-from image_utils import base642image,image2base64
+from image_utils import base642image,image2base64,image2base64_new
 import cv2
 from threading import Thread,local
 import threading
@@ -66,6 +66,7 @@ class Event_Sender(threading.Thread):
             'silicagel':self.clf_solver,
             'screen_crash':self.clf_solver,
             'damaged':self.clf_solver,
+            'person':self.common_solver,
         }
         self.url = "http://localhost:8090/api/v1/result"
         self.kwargs = kwargs
@@ -142,6 +143,7 @@ class Event_Sender(threading.Thread):
         post_result = 0
         target_dict = self.result[0]['helmet_suit_smoking']
         if target_dict['img']:
+            # print(target_dict['detection'])
             sign, img = self.helmet_suit_smoking(target_dict['detection'],target='helmet',img = base642image(target_dict['img']))
             if sign:
                 post_result=1
@@ -199,7 +201,7 @@ class Event_Sender(threading.Thread):
         unique, counts = np.unique(ls[:, 0], return_counts=True)
         
         if target == 'helmet':
-            sign = (1 in unique) and (0 in unique) and (counts[0] < counts[1])
+            sign = ((1.0 in unique) and (0.0 in unique) and (counts[0] < counts[1])) or ((1.0  in unique) and (0.0 not in unique))
             for item in ls[np.logical_and(ls[:, 1] > 0.5, ls[:, 0] == 1), :]: # plot rectangle for person.
                 img = cv2.rectangle(
                     img, 
@@ -365,7 +367,7 @@ class SendPost(object):
     def run_rtsp_cpu(self):
         cap = cv2.VideoCapture(self.source_url)
         ret,img = cap.read()
-        img  = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
+        # img  = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
         self.detect_and_send(datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f"),img)
 
             
