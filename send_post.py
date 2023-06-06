@@ -147,7 +147,7 @@ class Event_Sender(threading.Thread):
                 post_result=1
             self.post_report(img,post_result,'helmet') 
         else:
-            self.post_report([],post_result,'')
+            self.post_report(np.array([]),post_result,'')
     
     def suit(self):
         post_result = 0
@@ -158,7 +158,7 @@ class Event_Sender(threading.Thread):
                 post_result=1
             self.post_report(img,post_result,'suit') 
         else:
-            self.post_report([],post_result,'')
+            self.post_report(np.array([]),post_result,'')
 
     def smoking(self):
         post_result=0
@@ -169,7 +169,7 @@ class Event_Sender(threading.Thread):
                 post_result=1
             self.post_report(img,post_result,'suit') 
         else:
-            self.post_report([],post_result,'')
+            self.post_report(np.array([]),post_result,'')
     
     def insulator_broken(self):
         post_result=0
@@ -191,7 +191,7 @@ class Event_Sender(threading.Thread):
                 post_result=1
             self.post_report(img,post_result,'insulator_stain') 
         else:
-            self.post_report([],post_result,'')
+            self.post_report(np.array([]),post_result,'')
 
     def helmet_suit_smoking(self, ls, target, img, confidence_level=0.5):
         ls = np.array([s.split('_') for s in ls]).astype(float)
