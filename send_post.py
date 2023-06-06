@@ -136,13 +136,7 @@ class Event_Sender(threading.Thread):
             self.post_report(img,post_result,'box_door')
         if  post_result==0:
             self.post_report(np.array([]),post_result,'')
-
-
-
-
-        
-
-                    
+            
     
     def helmet(self):
         post_result = 0
