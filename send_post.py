@@ -60,7 +60,7 @@ class Event_Sender(threading.Thread):
             'insulator_broken':self.insulator_broken,
             'insulator_stain':self.insulator_stain,
             'capacitor_bulge':self.clf_solver,
-            'box_door':self.clf_solver,
+            'box_door':self.box_door,
             'blurred_dial':self.clf_solver,
             'abnormal_meter':self.clf_solver,
             'silicagel':self.clf_solver,
@@ -107,7 +107,7 @@ class Event_Sender(threading.Thread):
                                     (0, 0, 255),thickness=2)
                     self.post_report(img,post_result,_r) 
         if  post_result==0:
-            self.post_report([],post_result,'')
+            self.post_report(np.array([]),post_result,'')
 
     def clf_solver(self):
         post_result = 0
@@ -119,7 +119,24 @@ class Event_Sender(threading.Thread):
                     img = base642image(l[_r]['img'])
                     self.post_report(img,post_result,_r)
         if  post_result==0:
-            self.post_report([],post_result,'')
+            self.post_report(np.array([]),post_result,'')
+    
+    def box_door(self):
+        post_result = 0
+        for l in self.result:
+            for _r in l:
+                print(f"{_r}:{l[_r]['detection']}")
+                if _r=='box_door':
+                    l_box_door = l
+                elif _r=='person':
+                    l_person = l
+        if l_box_door['box_door']['img'] and not l_person['person']['img']:
+            post_result = 1
+            img = base642image(l_box_door['box_door']['img'])
+            self.post_report(img,post_result,'box_door')
+        if  post_result==0:
+            self.post_report(np.array([]),post_result,'')
+
 
 
 

@@ -38,7 +38,8 @@ class Processor(allspark.BaseProcessor):
                 transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
             ])
             self.model = torch.load(self.model_path)
-            self.nonlinear = nn.Softmax(dim=1)
+            self.model.eval()
+            # self.nonlinear = nn.Softmax(dim=1)
 
     def process(self, item):
         # 调用模型推理方法，每调用一次会运行一次
@@ -90,9 +91,10 @@ class Processor(allspark.BaseProcessor):
                     #               (0, 255, 0),
                     #               thickness=2)
             else:
-                # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                sample = self.transforms(Image.fromarray(image)).unsqueeze(0)
-                outputs = self.nonlinear(self.model(sample)).tolist()[0]
+                image_pil = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                nonlinear = nn.Softmax(dim=1)
+                sample = self.transforms(Image.fromarray(image_pil)).unsqueeze(0)
+                outputs = nonlinear(self.model(sample)).tolist()[0]
                 if outputs[1]>self.confidence:
                     flag = True
                     label_res.append(f"1_{outputs[1]}")
