@@ -67,7 +67,7 @@ class Event_Sender(threading.Thread):
             'screen_crash':self.clf_solver,
             'damaged':self.clf_solver,
         }
-        self.url = "http://192.168.0.192:8090/api/v1/result"
+        self.url = "http://localhost:8090/api/v1/result"
         self.kwargs = kwargs
     
     def run(self):
