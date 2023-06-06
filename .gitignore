@@ -5,3 +5,4 @@ __pycache__
 models/**/*.pt
 result/
 models.zip
+分类部署/
