@@ -86,10 +86,10 @@ class Event_Sender(threading.Thread):
              "history_type":self.kwargs["history_type"]
         }
         # print(data)
-        # try:
-        #     requests.post(self.url,json=data,timeout=3)
-        # except Exception as e:
-        #     logger.error(e)
+        try:
+            requests.post(self.url,json=data,timeout=3)
+        except Exception as e:
+            logger.error(e)
 
 
     
