@@ -6,3 +6,4 @@ models/**/*.pt
 result/
 models.zip
 分类部署/
+dataset/
