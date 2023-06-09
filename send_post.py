@@ -75,6 +75,9 @@ class Event_Sender(threading.Thread):
             'switch_2':self.clf_solver,
             'surface_pollution':self.clf_solver,
             'rust':self.common_solver,
+            'fire':self.common_solver,
+            'light_status':self.light_status_solver,
+            'yaban':self.yaban_solver,
 
         }
         self.url = "http://localhost:8090/api/v1/result"
@@ -85,7 +88,7 @@ class Event_Sender(threading.Thread):
     
     def post_report(self,img,result,model_name):
         image = ''
-        if img.any() and result:
+        if img.any() and result>-1:
             image=image2base64(img)
             if develop:
                 cv2.imwrite(os.path.join(base_path,'./result/'+model_name+f'{datetime.now()}.jpg'),img)
@@ -106,7 +109,7 @@ class Event_Sender(threading.Thread):
 
     
     def common_solver(self):
-        post_result = 0
+        post_result = -1
         for l in self.result:
             for _r in l:
                 # print(f"{_r}:{l[_r]['detection']}")
@@ -118,7 +121,7 @@ class Event_Sender(threading.Thread):
                         cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
                                     (0, 0, 255),thickness=2)
                     self.post_report(img,post_result,_r) 
-        if  post_result==0:
+        if  post_result==-1:
             self.post_report(np.array([]),post_result,'')
 
     def clf_solver(self):
@@ -132,7 +135,7 @@ class Event_Sender(threading.Thread):
         
     
     def box_door(self):
-        post_result = 0
+        post_result = -1
         for l in self.result:
             for _r in l:
                 # print(f"{_r}:{l[_r]['detection']}")
@@ -144,65 +147,79 @@ class Event_Sender(threading.Thread):
             post_result = 1
             img = base642image(l_box_door['box_door']['img'])
             self.post_report(img,post_result,'box_door')
-        if  post_result==0:
-            self.post_report(np.array([]),post_result,'')
+        else:
+            post_result = 0
+            img = base642image(l_box_door['box_door']['img'])
+            self.post_report(img,post_result,'box_door')
+        if  post_result==-1:
+            self.post_report(np.array([]),post_result,'box_door')
             
     
     def helmet(self):
-        post_result = 0
+        post_result = -1
         target_dict = self.result[0]['helmet_suit_smoking']
         if target_dict['img']:
             # print(target_dict['detection'])
             sign, img = self.helmet_suit_smoking(target_dict['detection'],target='helmet',img = base642image(target_dict['img']))
             if sign:
                 post_result=1
-            self.post_report(img,post_result,'helmet') 
+                self.post_report(img,post_result,'helmet') 
+            else:
+                self.post_report(img,0,'helmet') 
         else:
-            self.post_report(np.array([]),post_result,'')
+            self.post_report(np.array([]),post_result,'helmet')
     
     def suit(self):
-        post_result = 0
+        post_result = -1
         target_dict = self.result[0]['helmet_suit_smoking']
         if target_dict['img']:
             sign, img = self.helmet_suit_smoking(target_dict['detection'],target='suit',img = base642image(target_dict['img']))
             if sign:
                 post_result=1
-            self.post_report(img,post_result,'suit') 
+                self.post_report(img,post_result,'suit')
+            else:
+                self.post_report(img,0,'suit') 
         else:
-            self.post_report(np.array([]),post_result,'')
+            self.post_report(np.array([]),post_result,'suit')
 
     def smoking(self):
-        post_result=0
+        post_result=-1
         target_dict = self.result[0]['helmet_suit_smoking']
         if target_dict['img']:
             sign, img = self.helmet_suit_smoking(target_dict['detection'],target='smoking',img = base642image(target_dict['img']))
             if sign:
                 post_result=1
-            self.post_report(img,post_result,'suit') 
+                self.post_report(img,post_result,'smoking') 
+            else:
+                self.post_report(img,0,'smoking')
         else:
-            self.post_report(np.array([]),post_result,'')
+            self.post_report(np.array([]),post_result,'smoking')
     
     def insulator_broken(self):
-        post_result=0
+        post_result=-1
         target_dict = self.result[0]['insulator']
         if target_dict['img']:
             sign, img = self.insulator(target_dict['detection'],target='broken',img = base642image(target_dict['img']))
             if sign:
                 post_result=1
-            self.post_report(img,post_result,'insulator_broken') 
+                self.post_report(img,post_result,'insulator_broken') 
+            else:
+                self.post_report(img,0,'insulator_broken')
         else:
-            self.post_report(np.array([]),post_result,'')
+            self.post_report(np.array([]),post_result,'insulator_broken')
 
     def insulator_stain(self):
-        post_result=0
+        post_result=-1
         target_dict = self.result[0]['insulator']
         if target_dict['img']:
             sign, img = self.insulator(target_dict['detection'],target='stain',img = base642image(target_dict['img']))
             if sign:
                 post_result=1
-            self.post_report(img,post_result,'insulator_stain') 
+                self.post_report(img,post_result,'insulator_stain') 
+            else:
+                self.post_report(img,0,'insulator_stain')
         else:
-            self.post_report(np.array([]),post_result,'')
+            self.post_report(np.array([]),post_result,'insulator_stain')
 
     def helmet_suit_smoking(self, ls, target, img, confidence_level=0.5):
         ls = np.array([s.split('_') for s in ls]).astype(float)
@@ -374,12 +391,111 @@ class Event_Sender(threading.Thread):
             return self.oil_reading(points[0], points[1], points[2], points[3]), img
 
     def oil_level_solver(self):
-        post_result=0
+        post_result=-1
         target_dict = self.result[0]['oil_level']
         # print(target_dict['detection'])
         if target_dict['img']:
             result, img = self.oil_level(target_dict['detection'],img = base642image(target_dict['img']))
             self.post_report(img,result,'oil_level') 
+        else:
+            self.post_report(np.array([]),-1,'oil_level')
+
+
+    def light_status(self, ls, target, img, confidence_level=0.5):
+        ls = np.array([s.split('_') for s in ls]).astype(float)
+        ls = ls[ls[:, 1] > confidence_level, :]
+        unique, counts = np.unique(ls[:, 0], return_counts=True)
+        
+        if target == 'close':
+            sign = 1 in unique
+            for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 1), :]: 
+                img = cv2.rectangle(
+                    img, 
+                    (int(item[2]), int(item[3])), 
+                    (int(item[4]), int(item[5])),
+                    (0, 255, 0),
+                    2
+                )
+                
+            return sign, img
+        
+        if target == 'open':
+            sign = 0 in unique
+            for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 0), :]: 
+                img = cv2.rectangle(
+                    img, 
+                    (int(item[2]), int(item[3])), 
+                    (int(item[4]), int(item[5])),
+                    (0, 255, 0),
+                    2
+                ) 
+
+            return sign, img
+
+
+    def light_status_solver(self):
+        post_result = -1
+        target_dict = self.result[0]['light_status']
+        if target_dict['img']:
+            post_result = 1
+            sign, img = self.light_status(target_dict['detection'],'open',img = base642image(target_dict['img']))
+            if sign:
+                self.post_report(img,1,'light_status')
+            else:
+                self.post_report(img,0,'light_status')
+
+        else:
+            self.post_report(np.array([]),post_result,'light_status')
+
+    def yaban(self, ls, target, img, confidence_level=0.5):
+        """
+        ls: list of string, eg: ['1.0_0.56_968_204_1053_276']
+        target: one of the targets ['close', 'open']
+        return values: logical value (True / False), img
+        """
+        ls = np.array([s.split('_') for s in ls]).astype(float)
+        ls = ls[ls[:, 1] > confidence_level, :]
+        unique, counts = np.unique(ls[:, 0], return_counts=True)
+        
+        if target == 'close':
+            sign = 2 in unique
+            for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 2), :]: 
+                img = cv2.rectangle(
+                    img, 
+                    (int(item[2]), int(item[3])), 
+                    (int(item[4]), int(item[5])),
+                    (0, 255, 0),
+                    2
+                )
+                
+            return sign, img
+        
+        if target == 'open':
+            sign = 3 in unique
+            for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 3), :]: 
+                img = cv2.rectangle(
+                    img, 
+                    (int(item[2]), int(item[3])), 
+                    (int(item[4]), int(item[5])),
+                    (0, 255, 0),
+                    2
+                ) 
+
+            return sign, img
+        
+    def yaban_solver(self):
+        post_result = -1
+        target_dict = self.result[0]['yaban']
+        if target_dict['img']:
+            post_result = 1
+            sign, img = self.yaban(target_dict['detection'],'open',img = base642image(target_dict['img']))
+            if sign:
+                self.post_report(img,1,'yaban')
+            else:
+                self.post_report(img,0,'yaban')
+
+        else:
+            self.post_report(np.array([]),post_result,'yaban')
 
       
 
