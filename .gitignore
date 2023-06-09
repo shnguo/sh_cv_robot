@@ -8,3 +8,4 @@ models.zip
 分类部署/
 dataset/
 logs/
+.gitignore.swp
