@@ -16,8 +16,10 @@ import cv2
 import numpy as np
 import requests
 import math
+from PIL import Image
 logger = get_logger(os.path.basename(__file__))
 base_path = os.path.dirname(os.path.abspath(__file__))
+develop = os.getenv('GS_DEVELOP')
 
 class Detection_Post(threading.Thread):
     def __init__(self,img_raw_cv,url):
@@ -68,7 +70,12 @@ class Event_Sender(threading.Thread):
             'screen_crash':self.clf_solver,
             'damaged':self.clf_solver,
             'person':self.common_solver,
-            'oil_level':self.oil_level_solver
+            'oil_level':self.oil_level_solver,
+            'switch_1':self.clf_solver,
+            'switch_2':self.clf_solver,
+            'surface_pollution':self.clf_solver,
+            'rust':self.common_solver,
+
         }
         self.url = "http://localhost:8090/api/v1/result"
         self.kwargs = kwargs
@@ -80,7 +87,8 @@ class Event_Sender(threading.Thread):
         image = ''
         if img.any() and result:
             image=image2base64(img)
-            cv2.imwrite(os.path.join(base_path,'./result/'+model_name+f'{datetime.now()}.jpg'),img)
+            if develop:
+                cv2.imwrite(os.path.join(base_path,'./result/'+model_name+f'{datetime.now()}.jpg'),img)
         data = {
             'date':self.timestamp,
             'image':image,
@@ -88,7 +96,8 @@ class Event_Sender(threading.Thread):
              "history_info_id":self.kwargs['history_info_id'],
              "history_type":self.kwargs["history_type"]
         }
-        # print(data)
+        if develop:
+            print(data['result'])
         try:
             requests.post(self.url,json=data,timeout=3)
         except Exception as e:
@@ -100,7 +109,7 @@ class Event_Sender(threading.Thread):
         post_result = 0
         for l in self.result:
             for _r in l:
-                print(f"{_r}:{l[_r]['detection']}")
+                # print(f"{_r}:{l[_r]['detection']}")
                 if l[_r]['img']:
                     post_result = 1
                     img = base642image(l[_r]['img'])
@@ -113,22 +122,20 @@ class Event_Sender(threading.Thread):
             self.post_report(np.array([]),post_result,'')
 
     def clf_solver(self):
-        post_result = 0
         for l in self.result:
             for _r in l:
-                print(f"{_r}:{l[_r]['detection']}")
+                # print(f"{_r}:{l[_r]['detection']}")
                 if l[_r]['img']:
-                    post_result = 1
+                    post_result = l[_r]['detection'][0].split('_')[0]
                     img = base642image(l[_r]['img'])
                     self.post_report(img,post_result,_r)
-        if  post_result==0:
-            self.post_report(np.array([]),post_result,'')
+        
     
     def box_door(self):
         post_result = 0
         for l in self.result:
             for _r in l:
-                print(f"{_r}:{l[_r]['detection']}")
+                # print(f"{_r}:{l[_r]['detection']}")
                 if _r=='box_door':
                     l_box_door = l
                 elif _r=='person':
@@ -339,7 +346,7 @@ class Event_Sender(threading.Thread):
             return (b1 - r) / (b1 - b2)
         return (b2 - r) / (b2 - b1)
 
-    def oil_level(self,ls, img, confidence_level=0.5):
+    def oil_level(self,ls, img, confidence_level=0.1):
         """
         ls: list of string, eg: ['1.0_0.56_968_204_1053_276'] xywh
         return values: float (percentage), img
@@ -369,8 +376,9 @@ class Event_Sender(threading.Thread):
     def oil_level_solver(self):
         post_result=0
         target_dict = self.result[0]['oil_level']
+        # print(target_dict['detection'])
         if target_dict['img']:
-            result, img = self.insulator(target_dict['detection'],img = base642image(target_dict['img']))
+            result, img = self.oil_level(target_dict['detection'],img = base642image(target_dict['img']))
             self.post_report(img,result,'oil_level') 
 
       
@@ -423,6 +431,8 @@ class SendPost(object):
 
     def run_pic(self,file_path):
         img = cv2.imread(file_path)
+        # I = Image.open(file_path)
+        # img = np.array(I)
         self.detect_and_send(datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f"),img)
     
     def run_rtsp_cpu(self):
@@ -505,7 +515,8 @@ def parse_opt():
 def main():
     opt = vars(parse_opt())
     logger.info('开始检测')
-    print(opt)
+    if develop:
+        print(opt)
     # time.sleep(30)
     base_path = os.path.dirname(os.path.abspath(__file__))
     scene = opt['scene'].strip()

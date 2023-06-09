@@ -74,6 +74,7 @@ class Processor(allspark.BaseProcessor):
                                   thickness=2)
             elif self.yolo_version=='yolov8':
                 # 每次只推理一张图像
+                # image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                 results = self.model.predict(image)
                 result = results[0].numpy() if self.model.device == 'cpu' else results[0].cpu().numpy()
                 xyxys, clss, confs = result.boxes.xyxy, result.boxes.cls, result.boxes.conf
@@ -98,6 +99,9 @@ class Processor(allspark.BaseProcessor):
                 if outputs[1]>self.confidence:
                     flag = True
                     label_res.append(f"1_{outputs[1]}")
+                else:
+                    flag = True
+                    label_res.append(f"0_{outputs[0]}")
 
             if flag:
                 # 保存检测结果
