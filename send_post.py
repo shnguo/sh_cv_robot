@@ -76,8 +76,8 @@ class Event_Sender(threading.Thread):
             'surface_pollution':self.clf_solver,
             'rust':self.common_solver,
             'fire':self.common_solver,
-            'light_status':self.light_status_solver,
-            'yaban':self.yaban_solver,
+            'light_status':self.clf_solver,
+            'yaban':self.clf_solver,
 
         }
         self.url = "http://localhost:8090/api/v1/result"
@@ -129,7 +129,7 @@ class Event_Sender(threading.Thread):
             for _r in l:
                 # print(f"{_r}:{l[_r]['detection']}")
                 if l[_r]['img']:
-                    post_result = l[_r]['detection'][0].split('_')[0]
+                    post_result = int(l[_r]['detection'][0].split('_')[0])
                     img = base642image(l[_r]['img'])
                     self.post_report(img,post_result,_r)
         
@@ -401,101 +401,101 @@ class Event_Sender(threading.Thread):
             self.post_report(np.array([]),-1,'oil_level')
 
 
-    def light_status(self, ls, target, img, confidence_level=0.5):
-        ls = np.array([s.split('_') for s in ls]).astype(float)
-        ls = ls[ls[:, 1] > confidence_level, :]
-        unique, counts = np.unique(ls[:, 0], return_counts=True)
+    # def light_status(self, ls, target, img, confidence_level=0.5):
+    #     ls = np.array([s.split('_') for s in ls]).astype(float)
+    #     ls = ls[ls[:, 1] > confidence_level, :]
+    #     unique, counts = np.unique(ls[:, 0], return_counts=True)
         
-        if target == 'close':
-            sign = 1 in unique
-            for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 1), :]: 
-                img = cv2.rectangle(
-                    img, 
-                    (int(item[2]), int(item[3])), 
-                    (int(item[4]), int(item[5])),
-                    (0, 255, 0),
-                    2
-                )
+    #     if target == 'close':
+    #         sign = 1 in unique
+    #         for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 1), :]: 
+    #             img = cv2.rectangle(
+    #                 img, 
+    #                 (int(item[2]), int(item[3])), 
+    #                 (int(item[4]), int(item[5])),
+    #                 (0, 255, 0),
+    #                 2
+    #             )
                 
-            return sign, img
+    #         return sign, img
         
-        if target == 'open':
-            sign = 0 in unique
-            for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 0), :]: 
-                img = cv2.rectangle(
-                    img, 
-                    (int(item[2]), int(item[3])), 
-                    (int(item[4]), int(item[5])),
-                    (0, 255, 0),
-                    2
-                ) 
+    #     if target == 'open':
+    #         sign = 0 in unique
+    #         for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 0), :]: 
+    #             img = cv2.rectangle(
+    #                 img, 
+    #                 (int(item[2]), int(item[3])), 
+    #                 (int(item[4]), int(item[5])),
+    #                 (0, 255, 0),
+    #                 2
+    #             ) 
 
-            return sign, img
+    #         return sign, img
 
 
-    def light_status_solver(self):
-        post_result = -1
-        target_dict = self.result[0]['light_status']
-        if target_dict['img']:
-            post_result = 1
-            sign, img = self.light_status(target_dict['detection'],'open',img = base642image(target_dict['img']))
-            if sign:
-                self.post_report(img,1,'light_status')
-            else:
-                self.post_report(img,0,'light_status')
+    # def light_status_solver(self):
+    #     post_result = -1
+    #     target_dict = self.result[0]['light_status']
+    #     if target_dict['img']:
+    #         post_result = 1
+    #         sign, img = self.light_status(target_dict['detection'],'open',img = base642image(target_dict['img']))
+    #         if sign:
+    #             self.post_report(img,1,'light_status')
+    #         else:
+    #             self.post_report(img,0,'light_status')
 
-        else:
-            self.post_report(np.array([]),post_result,'light_status')
+    #     else:
+    #         self.post_report(np.array([]),post_result,'light_status')
 
-    def yaban(self, ls, target, img, confidence_level=0.5):
-        """
-        ls: list of string, eg: ['1.0_0.56_968_204_1053_276']
-        target: one of the targets ['close', 'open']
-        return values: logical value (True / False), img
-        """
-        ls = np.array([s.split('_') for s in ls]).astype(float)
-        ls = ls[ls[:, 1] > confidence_level, :]
-        unique, counts = np.unique(ls[:, 0], return_counts=True)
+    # def yaban(self, ls, target, img, confidence_level=0.5):
+    #     """
+    #     ls: list of string, eg: ['1.0_0.56_968_204_1053_276']
+    #     target: one of the targets ['close', 'open']
+    #     return values: logical value (True / False), img
+    #     """
+    #     ls = np.array([s.split('_') for s in ls]).astype(float)
+    #     ls = ls[ls[:, 1] > confidence_level, :]
+    #     unique, counts = np.unique(ls[:, 0], return_counts=True)
         
-        if target == 'close':
-            sign = 2 in unique
-            for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 2), :]: 
-                img = cv2.rectangle(
-                    img, 
-                    (int(item[2]), int(item[3])), 
-                    (int(item[4]), int(item[5])),
-                    (0, 255, 0),
-                    2
-                )
+    #     if target == 'close':
+    #         sign = 2 in unique
+    #         for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 2), :]: 
+    #             img = cv2.rectangle(
+    #                 img, 
+    #                 (int(item[2]), int(item[3])), 
+    #                 (int(item[4]), int(item[5])),
+    #                 (0, 255, 0),
+    #                 2
+    #             )
                 
-            return sign, img
+    #         return sign, img
         
-        if target == 'open':
-            sign = 3 in unique
-            for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 3), :]: 
-                img = cv2.rectangle(
-                    img, 
-                    (int(item[2]), int(item[3])), 
-                    (int(item[4]), int(item[5])),
-                    (0, 255, 0),
-                    2
-                ) 
+    #     if target == 'open':
+    #         sign = 3 in unique
+    #         for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 3), :]: 
+    #             img = cv2.rectangle(
+    #                 img, 
+    #                 (int(item[2]), int(item[3])), 
+    #                 (int(item[4]), int(item[5])),
+    #                 (0, 255, 0),
+    #                 2
+    #             ) 
 
-            return sign, img
+    #         return sign, img
         
-    def yaban_solver(self):
-        post_result = -1
-        target_dict = self.result[0]['yaban']
-        if target_dict['img']:
-            post_result = 1
-            sign, img = self.yaban(target_dict['detection'],'open',img = base642image(target_dict['img']))
-            if sign:
-                self.post_report(img,1,'yaban')
-            else:
-                self.post_report(img,0,'yaban')
+    # def yaban_solver(self):
+    #     post_result = -1
+    #     target_dict = self.result[0]['yaban']
+    #     if target_dict['img']:
+    #         post_result = 1
+    #         sign, img = self.yaban(target_dict['detection'],'open',img = base642image(target_dict['img']))
+    #         if sign:
+    #             self.post_report(img,1,'yaban')
+    #         else:
+    #             self.post_report(img,0,'yaban')
 
-        else:
-            self.post_report(np.array([]),post_result,'yaban')
+    #     else:
+    #         self.post_report(np.array([]),post_result,'yaban')
 
       
 
