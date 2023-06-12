@@ -1,5 +1,5 @@
 # sh_cv_robot
-[x]高压线异物：voltage_line_matter
+- [x] 高压线异物：voltage_line_matter
 [x] 地面油污：oil
 [x] 烟雾:smoke
 [x] 头盔：helmet
