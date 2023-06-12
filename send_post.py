@@ -97,7 +97,8 @@ class Event_Sender(threading.Thread):
             'image':image,
             'result':result,
              "history_info_id":self.kwargs['history_info_id'],
-             "history_type":self.kwargs["history_type"]
+             "history_type":self.kwargs["history_type"],
+             'model_type':self.kwargs["model_type"],
         }
         if develop:
             print(data['result'])
@@ -623,6 +624,7 @@ def parse_opt():
     parser.add_argument('--scene',type=str,default='voltage_line_matter',help='scene')
     parser.add_argument('--history_info_id',type=int,default=0,help='history_info_id')
     parser.add_argument('--history_type',type=int,default=0,help='history_type')
+    parser.add_argument('--model_type',type=int,default=0,help='model_type')
     parser.add_argument('--pic_area',type=str,default='0,0,0,0',help='x,y,w,h')
     opt = parser.parse_args()
     return opt
@@ -644,7 +646,8 @@ def main():
         return 0     
     with open(os.path.join(base_path,"model_conf.cfg")) as f:
         model_conf = json.load(f)
-    sp = SendPost(opt['source_url'],opt['forever'],scene,model_list,model_conf,pic_area=opt['pic_area'],history_info_id=opt['history_info_id'],history_type=opt['history_type'])
+    sp = SendPost(opt['source_url'],opt['forever'],scene,model_list,model_conf,pic_area=opt['pic_area'],
+                  history_info_id=opt['history_info_id'],history_type=opt['history_type'],model_type=opt['model_type'])
     sp.run()
     
 
