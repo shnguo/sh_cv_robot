@@ -95,7 +95,7 @@ class Event_Sender(threading.Thread):
         data = {
             'date':self.timestamp,
             'image':image,
-            'result':result,
+            'result':str(result),
              "history_info_id":self.kwargs['history_info_id'],
              "history_type":self.kwargs["history_type"],
              'model_type':self.kwargs["model_type"],
