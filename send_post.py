@@ -596,7 +596,12 @@ class SendPost(object):
     def detect_and_send(self,pic_time,img_raw_cv):               
         thread_pool = []
         if self.h>0 and self.w>0:
-            crop = img_raw_cv[self.y:self.y+self.h, self.x:self.x+self.w]
+            img_raw_cv_h,img_raw_cv_w = img_raw_cv.shape[0],img_raw_cv.shape[1]
+            crop_y = int(self.y/230*img_raw_cv_h)
+            crop_h = int(self.h/230*img_raw_cv_h)
+            crop_x = int(self.x/300*img_raw_cv_w)
+            crop_w = int(self.w/300*img_raw_cv_w)
+            crop = img_raw_cv[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
         else:
             crop = img_raw_cv
         for url in self.detection_list:
