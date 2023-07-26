@@ -78,6 +78,7 @@ class Event_Sender(threading.Thread):
             'fire':self.common_solver,
             'light_status':self.clf_solver,
             'yaban':self.clf_solver,
+            'open_door':self.clf_solver,
 
         }
         self.url = "http://localhost:8090/api/v1/result"
