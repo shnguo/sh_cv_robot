@@ -17,6 +17,7 @@ import numpy as np
 import requests
 import math
 from PIL import Image
+from clf_conf import clf_conf
 logger = get_logger(os.path.basename(__file__))
 base_path = os.path.dirname(os.path.abspath(__file__))
 develop = os.getenv('GS_DEVELOP')
@@ -62,22 +63,22 @@ class Event_Sender(threading.Thread):
             'smoking':self.smoking,
             'insulator_broken':self.insulator_broken,
             'insulator_stain':self.insulator_stain,
-            'capacitor_bulge':self.clf_solver,
-            'box_door':self.box_door,
-            'blurred_dial':self.clf_solver,
+            'capacitor_bulge':self.clf_clf_solver,
+            'box_door':self.clf_clf_solver,
+            'blurred_dial':self.clf_clf_solver,
             'abnormal_meter':self.clf_solver,
-            'silicagel':self.clf_solver,
-            'screen_crash':self.clf_solver,
-            'damaged':self.clf_solver,
+            'silicagel':self.clf_clf_solver,
+            'screen_crash':self.clf_clf_solver,
+            'damaged':self.clf_clf_solver,
             'person':self.common_solver,
             'oil_level':self.oil_level_solver,
-            'switch_1':self.clf_solver,
-            'switch_2':self.clf_solver,
+            'switch_1':self.clf_clf_solver,
+            'switch_2':self.clf_clf_solver,
             'surface_pollution':self.clf_solver,
             'rust':self.common_solver,
             'fire':self.common_solver,
-            'light_status':self.clf_solver,
-            'yaban':self.clf_solver,
+            'light_status':self.clf_clf_solver,
+            'yaban':self.clf_clf_solver,
             'open_door':self.clf_solver,
 
         }
@@ -92,7 +93,7 @@ class Event_Sender(threading.Thread):
         if img.any() and result>-1:
             image=image2base64(img)
             if develop:
-                cv2.imwrite(os.path.join(base_path,'./result/'+model_name+f'{datetime.now()}.jpg'),img)
+                cv2.imwrite(os.path.join(base_path,'./result/'+model_name+f'_{result}_'+f'{datetime.now()}.jpg'),img)
         data = {
             'date':self.timestamp,
             'image':image,
@@ -134,6 +135,48 @@ class Event_Sender(threading.Thread):
                     post_result = int(l[_r]['detection'][0].split('_')[0])
                     img = base642image(l[_r]['img'])
                     self.post_report(img,post_result,_r)
+    
+    def yolo_clf_solver(self):
+        for l in self.result:
+            if 'objects_10' in l:
+                objects_10_value = l['objects_10']
+                break
+        find = False
+        if objects_10_value['img']:
+            print(objects_10_value['detection'])
+            for _d in objects_10_value['detection']:
+                if _d.split('_')[0]==clf_conf[self.scene]:
+                    find = True
+                    img=base642image(objects_10_value['img'])
+                    break
+        if find:
+            for l in self.result:
+                if f'{self.scene}_clf' in l:
+                    post_result = int(l[f'{self.scene}_clf']['detection'][0].split('_')[0])
+                    self.post_report(img,post_result,f'{self.scene}_clf')
+
+        else:
+            self.post_report(np.array([]),-1,'')
+                
+    def clf_clf_solver(self):
+        for l in self.result:
+            if 'objects_10_clf' in l:
+                objects_10_value = l['objects_10_clf']
+                break
+        find = False
+        print(f"clf1={objects_10_value['detection'][0].split('_')[0]}")
+        img=base642image(objects_10_value['img'])
+        if objects_10_value['detection'][0].split('_')[0]==clf_conf[self.scene]:
+            find=True
+        if find:
+            for l in self.result:
+                if f'{self.scene}_clf' in l:
+                    post_result = int(l[f'{self.scene}_clf']['detection'][0].split('_')[0])
+                    self.post_report(img,post_result,f'{self.scene}_clf')
+
+        else:
+            self.post_report(np.array([]),-1,'')
+
         
     
     def box_door(self):

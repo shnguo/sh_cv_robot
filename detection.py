@@ -10,6 +10,7 @@ import socket
 from ultralytics import YOLO
 from resnet.net import *
 from PIL import Image
+import numpy as np
 
 torch.backends.cudnn.enabled = False
 
@@ -91,7 +92,7 @@ class Processor(allspark.BaseProcessor):
                     # cv2.rectangle(image, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])),
                     #               (0, 255, 0),
                     #               thickness=2)
-            else:
+            elif self.yolo_version=='resnet50':
                 image_pil = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                 nonlinear = nn.Softmax(dim=1)
                 sample = self.transforms(Image.fromarray(image_pil)).unsqueeze(0)
@@ -102,6 +103,15 @@ class Processor(allspark.BaseProcessor):
                 else:
                     flag = True
                     label_res.append(f"0_{outputs[0]}")
+            else:
+                image_pil = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                nonlinear = nn.Softmax(dim=1)
+                sample = self.transforms(Image.fromarray(image_pil)).unsqueeze(0)
+                outputs = nonlinear(self.model(sample)).tolist()[0]
+                argmax_index = np.argmax(outputs)
+                flag = True
+                label_res.append(f"{argmax_index}_{outputs[argmax_index]}")
+
 
             if flag:
                 # 保存检测结果
