@@ -164,7 +164,7 @@ class Event_Sender(threading.Thread):
                 objects_10_value = l['objects_10_clf']
                 break
         find = False
-        print(f"clf1={objects_10_value['detection'][0].split('_')[0]}")
+        # print(f"clf1={objects_10_value['detection'][0].split('_')[0]}")
         img=base642image(objects_10_value['img'])
         if objects_10_value['detection'][0].split('_')[0]==clf_conf[self.scene]:
             find=True
