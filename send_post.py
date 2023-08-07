@@ -164,7 +164,7 @@ class Event_Sender(threading.Thread):
                 objects_10_value = l['objects_10_clf']
                 break
         find = False
-        # print(f"clf1={objects_10_value['detection'][0].split('_')[0]}")
+        # print(f"clf1={objects_10_value['detection'][0].split('_')}")
         img=base642image(objects_10_value['img'])
         if objects_10_value['detection'][0].split('_')[0]==clf_conf[self.scene]:
             find=True
@@ -172,6 +172,7 @@ class Event_Sender(threading.Thread):
             for l in self.result:
                 if f'{self.scene}_clf' in l:
                     post_result = int(l[f'{self.scene}_clf']['detection'][0].split('_')[0])
+                    # print(f"bool={l[f'{self.scene}_clf']['detection'][0].split('_')}")
                     self.post_report(img,post_result,f'{self.scene}_clf')
 
         else:
@@ -641,10 +642,10 @@ class SendPost(object):
         thread_pool = []
         if self.h>0 and self.w>0:
             img_raw_cv_h,img_raw_cv_w = img_raw_cv.shape[0],img_raw_cv.shape[1]
-            crop_y = int(self.y/230*img_raw_cv_h)
-            crop_h = int(self.h/230*img_raw_cv_h)
-            crop_x = int(self.x/300*img_raw_cv_w)
-            crop_w = int(self.w/300*img_raw_cv_w)
+            crop_y = int(self.y/225*img_raw_cv_h)
+            crop_h = int(self.h/225*img_raw_cv_h)
+            crop_x = int(self.x/400*img_raw_cv_w)
+            crop_w = int(self.w/400*img_raw_cv_w)
             crop = img_raw_cv[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
         else:
             crop = img_raw_cv
