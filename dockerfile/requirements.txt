@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+orjson
+redis
+opencv-python
+Pillow
+numpy
+requests

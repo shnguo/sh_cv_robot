@@ -1,0 +1,11 @@
+version: "3"
+services:
+  web:
+    image: shnguo/sh_cv_robot_app
+    container_name: sh_cv_robot_app
+    ports:
+      - 8002:8002
+    volumes:
+      - ../../sh_cv_robot:/sh_cv_robot
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

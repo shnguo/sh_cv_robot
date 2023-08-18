@@ -18,6 +18,7 @@ import requests
 import math
 from PIL import Image
 from clf_conf import clf_conf
+import queue
 logger = get_logger(os.path.basename(__file__))
 base_path = os.path.dirname(os.path.abspath(__file__))
 develop = os.getenv('GS_DEVELOP')
@@ -48,7 +49,7 @@ class Detection_Post(threading.Thread):
 
 class Event_Sender(threading.Thread):
 
-    def __init__(self,scene,event_time,result,**kwargs):
+    def __init__(self,scene,event_time,result,result_queue,host,**kwargs):
         threading.Thread.__init__(self)
         self.scene=scene
         self.event_time = event_time
@@ -82,8 +83,9 @@ class Event_Sender(threading.Thread):
             'open_door':self.clf_solver,
 
         }
-        self.url = "http://localhost:8090/api/v1/result"
+        self.url = f"http://{host}:8090/api/v1/result"
         self.kwargs = kwargs
+        self.result_queue = result_queue
     
     def run(self):
         self.dispatch[self.scene]()
@@ -102,6 +104,7 @@ class Event_Sender(threading.Thread):
              "history_type":self.kwargs["history_type"],
              'model_type':self.kwargs["model_type"],
         }
+        self.result_queue.put(data)
         if develop:
             print(data['result'])
         try:
@@ -130,7 +133,8 @@ class Event_Sender(threading.Thread):
     def clf_solver(self):
         for l in self.result:
             for _r in l:
-                # print(f"{_r}:{l[_r]['detection']}")
+                if develop:
+                    print(f"{_r}:{l[_r]['detection']}")
                 if l[_r]['img']:
                     post_result = int(l[_r]['detection'][0].split('_')[0])
                     img = base642image(l[_r]['img'])
@@ -547,17 +551,22 @@ class Event_Sender(threading.Thread):
 
 class SendPost(object):
 
-    def __init__(self,source_url,forever,scene,model_list,model_conf,pic_area,**kwargs):
-        self.detection_list = ['http://0.0.0.0:'+str(model_conf[m]['port'])+'/test' for m in model_list]
-        self.source_url = source_url
-        self.model_list = model_list
-        self.scene = scene
-        self.redis_con = redis.Redis(host='0.0.0.0',
+    def __init__(self,source_url,forever,scene,model_list,model_conf,pic_area,docker=False,**kwargs):
+        if docker:
+            self.host = 'host.docker.internal'
+        else:
+            self.host = '0.0.0.0'
+        self.detection_list = [f'http://{self.host}:'+str(model_conf[m]['port'])+'/test' for m in model_list]
+        self.redis_con = redis.Redis(host=self.host,
                         password='foster123456',
                         decode_responses=True,socket_timeout=30)
+        self.source_url = source_url
+        self.model_list = model_list
+        self.scene = scene      
         self.forever = forever
         self.kwargs = kwargs
         [self.x,self.y,self.w,self.h] = [int(x) for x in pic_area.split(',')]
+        self.result_queue = queue.Queue()
 
     def read_rtsp_frame(self,key):
         return orjson.loads(self.redis_con.get(key))
@@ -642,10 +651,16 @@ class SendPost(object):
         thread_pool = []
         if self.h>0 and self.w>0:
             img_raw_cv_h,img_raw_cv_w = img_raw_cv.shape[0],img_raw_cv.shape[1]
-            crop_y = int(self.y/225*img_raw_cv_h)
-            crop_h = int(self.h/225*img_raw_cv_h)
-            crop_x = int(self.x/400*img_raw_cv_w)
-            crop_w = int(self.w/400*img_raw_cv_w)
+            # crop_y = int(self.y/225*img_raw_cv_h)
+            # crop_h = int(self.h/225*img_raw_cv_h)
+            # crop_x = int(self.x/400*img_raw_cv_w)
+            # crop_w = int(self.w/400*img_raw_cv_w)
+
+            crop_y = int(img_raw_cv_h)
+            crop_h = int(img_raw_cv_h)
+            crop_x = int(img_raw_cv_w)
+            crop_w = int(img_raw_cv_w)
+
             crop = img_raw_cv[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
         else:
             crop = img_raw_cv
@@ -657,9 +672,18 @@ class SendPost(object):
         result = []
         for m,t in zip(self.model_list,thread_pool):
             result.append({m:t.get_result()})
-        th = Event_Sender(self.scene,pic_time,result,**self.kwargs)
+        th = Event_Sender(self.scene,pic_time,result,self.result_queue,self.host,**self.kwargs)
         th.start()
         th.join()
+
+    def get_result(self):
+        results = []
+        while not self.result_queue.empty():
+            results.append(self.result_queue.get())
+
+        return {
+            'results':results
+        }
         
                 
 

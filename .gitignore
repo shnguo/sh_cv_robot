@@ -9,3 +9,4 @@ models.zip
 dataset/
 logs/
 logs/send_post.log
+dockerfile/sh_cv_robot_app.tar
