@@ -7,5 +7,6 @@ services:
       - 8002:8002
     volumes:
       - ../../sh_cv_robot:/sh_cv_robot
+      - ../../patrol:/home/dl/patrol
     extra_hosts:
       - "host.docker.internal:host-gateway"
