@@ -81,6 +81,7 @@ class Event_Sender(threading.Thread):
             'light_status':self.clf_clf_solver,
             'yaban':self.clf_clf_solver,
             'open_door':self.clf_solver,
+            'box_door_2':self.box_door_2_solver,
 
         }
         self.url = f"http://{host}:8090/api/v1/result"
@@ -449,6 +450,29 @@ class Event_Sender(threading.Thread):
             self.post_report(img,result,'oil_level') 
         else:
             self.post_report(np.array([]),-1,'oil_level')
+    
+    def box_door_2_solver(self):
+        post_result=-1
+        target_dict = self.result[0]['door_yolo']
+        if target_dict['img']:
+            img = base642image(target_dict['img'])
+            for _item in target_dict['detection']:
+                _info_list = _item.split('_')
+                if int(_info_list[0])>0:
+                    cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
+                                    (0, 0, 255),thickness=2)
+                    post_result=1
+                else:
+                    cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
+                                    (0, 255, 0),thickness=2)
+                    if post_result<0:
+                        post_result=0
+            self.post_report(img,post_result,'door_yolo')
+
+        else:
+            self.post_report(np.array([]),-1,'door_yolo')
+
+
 
 
     # def light_status(self, ls, target, img, confidence_level=0.5):
