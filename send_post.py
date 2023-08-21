@@ -656,10 +656,10 @@ class SendPost(object):
             # crop_x = int(self.x/400*img_raw_cv_w)
             # crop_w = int(self.w/400*img_raw_cv_w)
 
-            crop_y = int(img_raw_cv_h)
-            crop_h = int(img_raw_cv_h)
-            crop_x = int(img_raw_cv_w)
-            crop_w = int(img_raw_cv_w)
+            crop_y = int(self.y)
+            crop_h = int(self.h)
+            crop_x = int(self.x)
+            crop_w = int(self.w)
 
             crop = img_raw_cv[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
         else:
