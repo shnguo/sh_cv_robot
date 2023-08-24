@@ -23,6 +23,9 @@ import json
 from fastapi.responses import ORJSONResponse
 # from model_type_map import model_type_map
 from send_post import SendPost
+import cv2
+from starlette.responses import StreamingResponse
+import io
 
 logger = log.get_logger(os.path.basename(__file__))
 app = FastAPI()
@@ -41,6 +44,9 @@ class Params(BaseModel):
     history_info_id:int=0
     history_type:int=0
     model_type:int=0
+
+class Rtsp(BaseModel):
+    source_url:str
 
 
 @app.on_event("startup")
@@ -96,8 +102,27 @@ async def sendpost(pa:Params):
                   history_info_id=pa.history_info_id,history_type=pa.history_type,model_type=pa.model_type)
     sp.run()
     return sp.get_result()
-    
 
+def get_frame(source_url):
+    ip = source_url
+    cap = cv2.VideoCapture(ip)
+    if not cap.isOpened():
+        return None
+    fps = int(cv2.CAP_PROP_FPS) if int(cv2.CAP_PROP_FPS) >= 1000 else 25
+    i = 0
+    while True:
+        retval, frame = cap.read()
+        if i == fps:
+            return frame
+        i += 1
+
+@app.post('/curpic_get')
+async def curpic_get(rtsp:Rtsp):
+    frame = get_frame(rtsp.source_url)
+    pic = cv2.resize(frame,(500,int(500*frame.shape[0]/frame.shape[1])))
+    print(f'pic.shape={pic.shape}')
+    res, im_png = cv2.imencode(".png", pic)
+    return StreamingResponse(io.BytesIO(im_png.tobytes()), media_type="image/png")
 
 
 

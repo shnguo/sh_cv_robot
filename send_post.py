@@ -210,13 +210,19 @@ class Event_Sender(threading.Thread):
         post_result = -1
         target_dict = self.result[0]['helmet_suit_smoking']
         if target_dict['img']:
-            # print(target_dict['detection'])
-            sign, img = self.helmet_suit_smoking(target_dict['detection'],target='helmet',img = base642image(target_dict['img']))
-            if sign:
-                post_result=1
-                self.post_report(img,post_result,'helmet') 
-            else:
-                self.post_report(img,0,'helmet') 
+            img = base642image(target_dict['img'])
+            for _item in target_dict['detection']:
+                _info_list = _item.split('_')
+                if int(_info_list[0])>0:
+                    cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
+                                    (0, 0, 255),thickness=2)
+                    post_result=1
+                else:
+                    cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
+                                    (0, 255, 0),thickness=2)
+                    if post_result<0:
+                        post_result=0
+            self.post_report(img,post_result,'helmet')
         else:
             self.post_report(np.array([]),post_result,'helmet')
     
