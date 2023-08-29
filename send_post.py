@@ -3,7 +3,7 @@ import orjson
 import time
 from log import get_logger
 import redis
-from image_utils import base642image,image2base64,image2base64_new
+from image_utils import base642image,image2base64,image2base64_new,cv2AddChineseText
 import cv2
 from threading import Thread,local
 import threading
@@ -19,9 +19,11 @@ import math
 from PIL import Image
 from clf_conf import clf_conf
 import queue
+from translations import translation_conf
 logger = get_logger(os.path.basename(__file__))
 base_path = os.path.dirname(os.path.abspath(__file__))
 develop = os.getenv('GS_DEVELOP')
+
 # develop=True
 
 class Detection_Post(threading.Thread):
@@ -128,6 +130,8 @@ class Event_Sender(threading.Thread):
                         _info_list = _info.split('_')
                         cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
                                     (0, 0, 255),thickness=2)
+                        img = cv2AddChineseText(img,translation_conf.get(_r,""),(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255, 0, 0),15)
+                        # cv2.putText(img,translation_conf.get(_r,""),(int(float(_info_list[2])),max(int(float(_info_list[3]))-10,0)),cv2.FONT_HERSHEY_COMPLEX, 5,(0, 0, 255),2)
                     self.post_report(img,post_result,_r) 
         if  post_result==-1:
             self.post_report(np.array([]),post_result,'')
@@ -218,10 +222,12 @@ class Event_Sender(threading.Thread):
                 if int(float(_info_list[0]))>0:
                     cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
                                     (0, 0, 255),thickness=2)
+                    img = cv2AddChineseText(img,"头盔异常",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255, 0, 0),15)
                     post_result=1
                 else:
                     cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
                                     (0, 255, 0),thickness=2)
+                    img = cv2AddChineseText(img,"头盔正常",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(0, 255, 0),15)
                     if post_result<0:
                         post_result=0
             self.post_report(img,post_result,'helmet')
@@ -314,7 +320,8 @@ class Event_Sender(threading.Thread):
                     (int(item[4]), int(item[5])),
                     (0, 255, 0),
                     2
-                ) 
+                )
+                img = cv2AddChineseText(img,"着装正常",(int(item[2]),max(int(item[3])-18,0)),(0, 255, 0),15)
             for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 2), :]: # plot rectangle for short sleeve.
                 img = cv2.rectangle(
                     img,
@@ -323,6 +330,7 @@ class Event_Sender(threading.Thread):
                     (0, 0, 255),
                     2
                 )
+                img = cv2AddChineseText(img,"着装异常",(int(item[2]),max(int(item[3])-18,0)),(255, 0, 0),15)
             for item in ls[np.logical_and(ls[:, 1] > confidence_level, ls[:, 0] == 3), :]: # plot rectangle for short pants.
                 img = cv2.rectangle(
                     img,
@@ -331,6 +339,7 @@ class Event_Sender(threading.Thread):
                     (0, 0, 225),
                     2
                 )
+                img = cv2AddChineseText(img,"着装异常",(int(item[2]),max(int(item[3])-18,0)),(255, 0, 0),15)
             return sign, img
         
         if target == 'smoking':
@@ -348,9 +357,10 @@ class Event_Sender(threading.Thread):
                     img, 
                     (int(item[2]), int(item[3])), 
                     (int(item[4]), int(item[5])),
-                    (255, 0, 255),
+                    (0, 0, 255),
                     2
                 )
+                img = cv2AddChineseText(img,"吸烟异常",(int(item[2]),max(int(item[3])-18,0)),(255, 0, 0),15)
             return sign, img   
     
     def insulator(self, ls, target, img, confidence_level=0.5):
@@ -376,6 +386,7 @@ class Event_Sender(threading.Thread):
                     (0, 0, 255),
                     2
                 )
+                img = cv2AddChineseText(img,"绝缘子破损",(int(item[2]),max(int(item[3])-18,0)),(255, 0, 0),15)
             return sign, img
         
         if target == 'stain':
@@ -396,6 +407,7 @@ class Event_Sender(threading.Thread):
                     (0, 0, 255),
                     2
                 )
+                img = cv2AddChineseText(img,"绝缘子污迹",(int(item[2]),max(int(item[3])-18,0)),(255, 0, 0),15)
             return sign, img
     
     def oil_reading(self,bound1, bound2, center, tail):
@@ -469,10 +481,12 @@ class Event_Sender(threading.Thread):
                 if int(float(_info_list[0]))>0:
                     cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
                                     (0, 0, 255),thickness=2)
+                    img = cv2AddChineseText(img,"关门异常",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(0, 255, 0),15)
                     post_result=1
                 else:
                     cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
                                     (0, 255, 0),thickness=2)
+                    img = cv2AddChineseText(img,"关门正常",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(0, 255, 0),15)
                     if post_result<0:
                         post_result=0
             self.post_report(img,post_result,'door_yolo')
