@@ -22,6 +22,7 @@ import queue
 logger = get_logger(os.path.basename(__file__))
 base_path = os.path.dirname(os.path.abspath(__file__))
 develop = os.getenv('GS_DEVELOP')
+# develop=True
 
 class Detection_Post(threading.Thread):
     def __init__(self,img_raw_cv,url):
@@ -125,7 +126,7 @@ class Event_Sender(threading.Thread):
                     img = base642image(l[_r]['img'])
                     for _info in l[_r]["detection"]:
                         _info_list = _info.split('_')
-                        cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
+                        cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
                                     (0, 0, 255),thickness=2)
                     self.post_report(img,post_result,_r) 
         if  post_result==-1:
@@ -137,7 +138,7 @@ class Event_Sender(threading.Thread):
                 if develop:
                     print(f"{_r}:{l[_r]['detection']}")
                 if l[_r]['img']:
-                    post_result = int(l[_r]['detection'][0].split('_')[0])
+                    post_result = int(float(l[_r]['detection'][0].split('_')[0]))
                     img = base642image(l[_r]['img'])
                     self.post_report(img,post_result,_r)
     
@@ -150,14 +151,14 @@ class Event_Sender(threading.Thread):
         if objects_10_value['img']:
             print(objects_10_value['detection'])
             for _d in objects_10_value['detection']:
-                if _d.split('_')[0]==clf_conf[self.scene]:
+                if int(float(_d.split('_')[0]))==clf_conf[self.scene]:
                     find = True
                     img=base642image(objects_10_value['img'])
                     break
         if find:
             for l in self.result:
                 if f'{self.scene}_clf' in l:
-                    post_result = int(l[f'{self.scene}_clf']['detection'][0].split('_')[0])
+                    post_result = int(float(l[f'{self.scene}_clf']['detection'][0].split('_')[0]))
                     self.post_report(img,post_result,f'{self.scene}_clf')
 
         else:
@@ -171,12 +172,12 @@ class Event_Sender(threading.Thread):
         find = False
         # print(f"clf1={objects_10_value['detection'][0].split('_')}")
         img=base642image(objects_10_value['img'])
-        if objects_10_value['detection'][0].split('_')[0]==clf_conf[self.scene]:
+        if int(float(objects_10_value['detection'][0].split('_')[0]))==clf_conf[self.scene]:
             find=True
         if find:
             for l in self.result:
                 if f'{self.scene}_clf' in l:
-                    post_result = int(l[f'{self.scene}_clf']['detection'][0].split('_')[0])
+                    post_result = int(float(l[f'{self.scene}_clf']['detection'][0].split('_')[0]))
                     # print(f"bool={l[f'{self.scene}_clf']['detection'][0].split('_')}")
                     self.post_report(img,post_result,f'{self.scene}_clf')
 
@@ -208,12 +209,13 @@ class Event_Sender(threading.Thread):
     
     def helmet(self):
         post_result = -1
-        target_dict = self.result[0]['helmet_suit_smoking']
+        target_dict = self.result[0]['helmet']
         if target_dict['img']:
             img = base642image(target_dict['img'])
+            print(target_dict['detection'])
             for _item in target_dict['detection']:
                 _info_list = _item.split('_')
-                if int(_info_list[0])>0:
+                if int(float(_info_list[0]))>0:
                     cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
                                     (0, 0, 255),thickness=2)
                     post_result=1
@@ -464,12 +466,12 @@ class Event_Sender(threading.Thread):
             img = base642image(target_dict['img'])
             for _item in target_dict['detection']:
                 _info_list = _item.split('_')
-                if int(_info_list[0])>0:
-                    cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
+                if int(float(_info_list[0]))>0:
+                    cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
                                     (0, 0, 255),thickness=2)
                     post_result=1
                 else:
-                    cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
+                    cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
                                     (0, 255, 0),thickness=2)
                     if post_result<0:
                         post_result=0
