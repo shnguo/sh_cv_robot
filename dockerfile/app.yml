@@ -8,5 +8,7 @@ services:
     volumes:
       - ../../sh_cv_robot:/sh_cv_robot
       - ../../patrol:/home/dl/patrol
+      - ../../sh_cv_robot:/home/dl/sh_cv_robot
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped

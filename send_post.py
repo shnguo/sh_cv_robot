@@ -23,8 +23,8 @@ from translations import translation_conf
 logger = get_logger(os.path.basename(__file__))
 base_path = os.path.dirname(os.path.abspath(__file__))
 develop = os.getenv('GS_DEVELOP')
+develop = True
 
-# develop=True
 
 class Detection_Post(threading.Thread):
     def __init__(self,img_raw_cv,url):
@@ -85,6 +85,8 @@ class Event_Sender(threading.Thread):
             'yaban':self.clf_clf_solver,
             'open_door':self.clf_solver,
             'box_door_2':self.box_door_2_solver,
+            'cigarette':self.common_solver,
+            'arm_leg':self.arm_leg_solver,
 
         }
         self.url = f"http://{host}:8090/api/v1/result"
@@ -112,7 +114,7 @@ class Event_Sender(threading.Thread):
         if develop:
             print(data['result'])
         try:
-            requests.post(self.url,json=data,timeout=3)
+            response = requests.post(self.url,json=data,timeout=3)
         except Exception as e:
             logger.error(e)
 
@@ -481,7 +483,7 @@ class Event_Sender(threading.Thread):
                 if int(float(_info_list[0]))>0:
                     cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
                                     (0, 0, 255),thickness=2)
-                    img = cv2AddChineseText(img,"关门异常",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(0, 255, 0),15)
+                    img = cv2AddChineseText(img,"关门异常",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255,0 , 0),15)
                     post_result=1
                 else:
                     cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
@@ -494,6 +496,26 @@ class Event_Sender(threading.Thread):
         else:
             self.post_report(np.array([]),-1,'door_yolo')
 
+    def arm_leg_solver(self):
+        post_result=-1
+        target_dict = self.result[0]['arm_leg']
+        if target_dict['img']:
+            img = base642image(target_dict['img'])
+            for _item in target_dict['detection']:
+                _info_list = _item.split('_')
+                if int(float(_info_list[0]))==0:
+                    cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
+                                    (0, 0, 255),thickness=2)
+                    img = cv2AddChineseText(img,"胳膊",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255,0 , 0),15)
+                    post_result=1
+                else:
+                    cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
+                                    (0, 255, 0),thickness=2)
+                    img = cv2AddChineseText(img,"大腿",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255, 0, 0),15)
+                    post_result=1
+            self.post_report(img,post_result,'arm_leg')
+        else:
+            self.post_report(np.array([]),-1,'arm_leg')
 
 
 

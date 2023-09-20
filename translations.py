@@ -5,5 +5,6 @@ translation_conf = {
     "smoke":"烟雾",
     "fire":"火",
     "rust":"锈迹",
+    "cigarette":'吸烟',
 
 }

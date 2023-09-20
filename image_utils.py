@@ -29,7 +29,7 @@ def cv2AddChineseText(img, text, position, textColor=(0, 255, 0), textSize=30):
     draw = ImageDraw.Draw(img)
     # 字体的格式
     fontStyle = ImageFont.truetype(
-        "fonts/simsun.ttc", textSize, encoding="utf-8")
+        "/home/dl/sh_cv_robot/fonts/simsun.ttc", textSize, encoding="utf-8")
     # 绘制文本
     draw.text(position, text, textColor, font=fontStyle)
     # 转换回OpenCV格式
