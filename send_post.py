@@ -23,7 +23,7 @@ from translations import translation_conf
 logger = get_logger(os.path.basename(__file__))
 base_path = os.path.dirname(os.path.abspath(__file__))
 develop = os.getenv('GS_DEVELOP')
-develop = True
+# develop = True
 
 
 class Detection_Post(threading.Thread):
