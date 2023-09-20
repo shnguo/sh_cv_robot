@@ -2,6 +2,7 @@ import base64
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+from pathlib import Path
 
 def base642image(base64_code):
     img_data = base64.b64decode(base64_code)
@@ -27,9 +28,9 @@ def cv2AddChineseText(img, text, position, textColor=(0, 255, 0), textSize=30):
         img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
     # 创建一个可以在给定图像上绘图的对象
     draw = ImageDraw.Draw(img)
-    # 字体的格式
+    base_path = Path(__file__).resolve().parent
     fontStyle = ImageFont.truetype(
-        "/home/dl/sh_cv_robot/fonts/simsun.ttc", textSize, encoding="utf-8")
+        f"{base_path}/fonts/simsun.ttc", textSize, encoding="utf-8")
     # 绘制文本
     draw.text(position, text, textColor, font=fontStyle)
     # 转换回OpenCV格式
