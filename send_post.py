@@ -3,7 +3,7 @@ import orjson
 import time
 from log import get_logger
 import redis
-from image_utils import base642image,image2base64,image2base64_new,cv2AddChineseText
+from image_utils import base642image,image2base64,image2base64_new,cv2AddChineseText,img_base64,base64_img
 import cv2
 from threading import Thread,local
 import threading
@@ -29,8 +29,8 @@ develop = os.getenv('GS_DEVELOP')
 class Detection_Post(threading.Thread):
     def __init__(self,img_raw_cv,url):
         threading.Thread.__init__(self)
-        # self.img_raw = cv2.cvtColor(img_raw_cv, cv2.COLOR_RGB2BGR)
-        self.img_raw_b64 = image2base64(img_raw_cv)
+        # self.img_raw_b64 = image2base64_new(img_raw_cv).decode('utf-8')
+        self.img_raw_b64 =image2base64(img_raw_cv)
         self.url = url
 
     def run(self):
@@ -87,6 +87,8 @@ class Event_Sender(threading.Thread):
             'box_door_2':self.box_door_2_solver,
             'cigarette':self.common_solver,
             'arm_leg':self.arm_leg_solver,
+            'light_on_off':self.clf_clf_solver,
+            'light_red_green':self.clf_clf_solver,
 
         }
         self.url = f"http://{host}:8090/api/v1/result"
@@ -176,7 +178,7 @@ class Event_Sender(threading.Thread):
                 objects_10_value = l['objects_10_clf']
                 break
         find = False
-        # print(f"clf1={objects_10_value['detection'][0].split('_')}")
+
         img=base642image(objects_10_value['img'])
         if int(float(objects_10_value['detection'][0].split('_')[0]))==clf_conf[self.scene]:
             find=True
@@ -670,7 +672,7 @@ class SendPost(object):
 
     def run_pic(self,file_path):
         img = cv2.imread(file_path)
-        # I = Image.open(file_path)
+        # I = Image.open(file_path).convert('RGB')
         # img = np.array(I)
         self.detect_and_send(datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f"),img)
     

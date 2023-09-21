@@ -4,14 +4,15 @@ import allspark
 import torch
 from torchvision import transforms
 import cv2
-from image_utils import image2base64, base642image
+from image_utils import image2base64, base642image,img_base64,base64_img
 import argparse
 import socket
 from ultralytics import YOLO
 from resnet.net import *
 from PIL import Image
 import numpy as np
-
+from log import get_logger
+logger = get_logger(os.path.basename(__file__))
 torch.backends.cudnn.enabled = False
 
 
@@ -47,8 +48,8 @@ class Processor(allspark.BaseProcessor):
         try:
             item = json.loads(item.decode("utf-8").strip())
             img_raw = item['img_raw']
+            # logger.info(img_raw[:10])
             image = base642image(img_raw)
-            # print(image.shape)
 
             res = {"img": None, 'detection': None}
 
@@ -93,10 +94,15 @@ class Processor(allspark.BaseProcessor):
                     #               (0, 255, 0),
                     #               thickness=2)
             elif self.yolo_version=='resnet50':
-                image_pil = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                image_pil = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 nonlinear = nn.Softmax(dim=1)
                 sample = self.transforms(Image.fromarray(image_pil)).unsqueeze(0)
+                # logger.info(sample)
+                # sample2 = self.transforms(Image.open('/home/dl/sh_cv_robot/dataset/pic/light_red_green/test_image/211695194409_.pic.jpg').convert('RGB')).unsqueeze(0)
+                # logger.info(sample2)
+                # logger.info(nonlinear(self.model(sample)))
                 outputs = nonlinear(self.model(sample)).tolist()[0]
+                # logger.info(outputs)
                 if outputs[1]>self.confidence:
                     flag = True
                     label_res.append(f"1_{outputs[1]}")
@@ -118,6 +124,7 @@ class Processor(allspark.BaseProcessor):
                 img_base64 = image2base64(image)
                 res["img"] = img_base64
                 res["detection"] = label_res
+            logger.info(label_res)
             return json.dumps(res), 200
         except Exception as e:
             print(e)

@@ -8,5 +8,7 @@ clf_conf = {
     'blurred_dial':1,
     'box_door':7,
     'screen_crash':6,
-    'damaged':2
+    'damaged':2,
+    'light_on_off':3,
+    'light_red_green':3,
 }
