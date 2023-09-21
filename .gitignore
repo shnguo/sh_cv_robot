@@ -2,7 +2,7 @@
 __pycache__
 .so
 *.so
-models/**/*.pt
+models/
 result/
 models.zip
 分类部署/
