@@ -3,6 +3,7 @@ clf_conf = {
     'light_status':3,
     "switch_1":5,
     "switch_2":5,
+    "switch_3":5,
     "capacitor_bulge":9,
     "silicagel":4,
     'blurred_dial':1,

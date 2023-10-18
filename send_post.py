@@ -9,7 +9,6 @@ from threading import Thread,local
 import threading
 import requests
 import json
-import orjson
 import os
 from datetime import datetime
 import cv2
@@ -78,6 +77,7 @@ class Event_Sender(threading.Thread):
             'oil_level':self.oil_level_solver,
             'switch_1':self.clf_clf_solver,
             'switch_2':self.clf_clf_solver,
+            'switch_3':self.clf_clf_solver,
             'surface_pollution':self.clf_solver,
             'rust':self.common_solver,
             'fire':self.common_solver,
@@ -89,6 +89,7 @@ class Event_Sender(threading.Thread):
             'arm_leg':self.arm_leg_solver,
             'light_on_off':self.clf_clf_solver,
             'light_red_green':self.clf_clf_solver,
+            'fence':self.fence_solver,
 
         }
         self.url = f"http://{host}:8090/api/v1/result"
@@ -115,10 +116,10 @@ class Event_Sender(threading.Thread):
         self.result_queue.put(data)
         if develop:
             print(data['result'])
-        try:
-            response = requests.post(self.url,json=data,timeout=3)
-        except Exception as e:
-            logger.error(e)
+        # try:
+        #     response = requests.post(self.url,json=data,timeout=3)
+        # except Exception as e:
+        #     logger.error(e)
 
 
     
@@ -519,7 +520,28 @@ class Event_Sender(threading.Thread):
         else:
             self.post_report(np.array([]),-1,'arm_leg')
 
+    def fence_solver(self):
+        post_result=-1
+        target_dict = self.result[0]['fence']
+        if target_dict['img']:
+            img = base642image(target_dict['img'])
+            for _item in target_dict['detection']:
+                _info_list = _item.split('_')
+                if int(float(_info_list[0]))==0:
+                    cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
+                                    (0, 0, 255),thickness=2)
+                    img = cv2AddChineseText(img,"围栏",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255,0 , 0),15)
+                    if post_result<0:
+                        post_result=0
+                elif int(float(_info_list[0]))==1:
+                    cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
+                                    (0, 255, 0),thickness=2)
+                    img = cv2AddChineseText(img,"大腿",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255, 0, 0),15)
+                    post_result=1
 
+            self.post_report(img,post_result,'fence')
+        else:
+            self.post_report(np.array([]),-1,'fence')
 
     # def light_status(self, ls, target, img, confidence_level=0.5):
     #     ls = np.array([s.split('_') for s in ls]).astype(float)

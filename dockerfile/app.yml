@@ -1,10 +1,10 @@
 version: "3"
 services:
-  web:
+  web1:
     image: shnguo/sh_cv_robot_app
-    container_name: sh_cv_robot_app
+    container_name: sh_cv_robot_app_8003
     ports:
-      - 8002:8002
+      - 8003:8002
     volumes:
       - ../../sh_cv_robot:/sh_cv_robot
       - ../../patrol:/home/dl/patrol
@@ -12,3 +12,66 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
+  
+  web2:
+    image: shnguo/sh_cv_robot_app
+    container_name: sh_cv_robot_app_8004
+    ports:
+      - 8004:8002
+    volumes:
+      - ../../sh_cv_robot:/sh_cv_robot
+      - ../../patrol:/home/dl/patrol
+      - ../../sh_cv_robot:/home/dl/sh_cv_robot
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+  
+  web3:
+    image: shnguo/sh_cv_robot_app
+    container_name: sh_cv_robot_app_8006
+    ports:
+      - 8006:8002
+    volumes:
+      - ../../sh_cv_robot:/sh_cv_robot
+      - ../../patrol:/home/dl/patrol
+      - ../../sh_cv_robot:/home/dl/sh_cv_robot
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+  
+  web4:
+    image: shnguo/sh_cv_robot_app
+    container_name: sh_cv_robot_app_8007
+    ports:
+      - 8007:8002
+    volumes:
+      - ../../sh_cv_robot:/sh_cv_robot
+      - ../../patrol:/home/dl/patrol
+      - ../../sh_cv_robot:/home/dl/sh_cv_robot
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+  
+  web5:
+    image: shnguo/sh_cv_robot_app
+    container_name: sh_cv_robot_app_8008
+    ports:
+      - 8008:8002
+    volumes:
+      - ../../sh_cv_robot:/sh_cv_robot
+      - ../../patrol:/home/dl/patrol
+      - ../../sh_cv_robot:/home/dl/sh_cv_robot
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+  
+  nginx:
+    image: nginx
+    ports:
+      - 8002:8002
+    volumes:
+      - ../nginx/conf.d:/etc/nginx/conf.d
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
