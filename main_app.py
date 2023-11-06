@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 # import pandas as pd
 import uvicorn
-from pydantic import BaseModel
+from pydantic import BaseModel,ConfigDict
 from typing import Dict, Union, List, Literal
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -50,6 +50,9 @@ class Params(BaseModel):
     history_info_id: int = 0
     history_type: int = 0
     model_type: int = 0
+    model_config=ConfigDict(
+            protected_namespaces=()
+        )
 
 
 class Rtsp(BaseModel):
@@ -61,6 +64,9 @@ class Video_Params(BaseModel):
     history_info_id: int = 0
     history_type: int = 0
     model_type: int = 0
+    model_config=ConfigDict(
+            protected_namespaces=()
+        )
 
 @app.on_event("startup")
 async def _startup():

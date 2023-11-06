@@ -90,6 +90,7 @@ class Event_Sender(threading.Thread):
             'light_on_off':self.clf_clf_solver,
             'light_red_green':self.clf_clf_solver,
             'fence':self.fence_solver,
+            'rat':self.common_solver,
 
         }
         self.url = f"http://{host}:8090/api/v1/result"

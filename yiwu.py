@@ -11,8 +11,10 @@ def recap_frames(file_dir):
     frames = []
     for i in frame_get:
         cap.set(cv2.CAP_PROP_POS_FRAMES, i)
-        _, frame = cap.read()
-        frames.append(frame)
+        _, tmp = cap.read()
+        if tmp is None:
+            continue
+        frames.append(tmp)
     cap.release()
     frame_median = np.median(frames, axis=0).astype(dtype=np.uint8)
     gray_frame_median = cv2.cvtColor(frame_median, cv2.COLOR_BGR2GRAY)
@@ -25,9 +27,12 @@ def process_video(file_dir):
     cap = cv2.VideoCapture(file_dir)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    rect = []
+    rect, frame = [], None
     for i in range(num_frames):
-        _, frame = cap.read()
+        _, tmp = cap.read()
+        if tmp is None:
+            continue
+        frame = tmp
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         diff_frame = cv2.absdiff(gray_frame, gray_frame_median)
         blur_frame = cv2.GaussianBlur(diff_frame, (5, 5), 0)
@@ -51,9 +56,12 @@ def process_video_gate(file_dir):
     cap = cv2.VideoCapture(file_dir)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    rect = []
+    rect, frame = [], None
     for i in range(num_frames):
-        _, frame = cap.read()
+        _, tmp = cap.read()
+        if tmp is None:
+            continue
+        frame = tmp
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         diff_frame = cv2.absdiff(gray_frame, gray_frame_median)
         blur_frame = cv2.GaussianBlur(diff_frame, (5, 5), 0)
@@ -62,8 +70,8 @@ def process_video_gate(file_dir):
         if len(contours) < 1000:
             for j in contours:
                 x, y, w, h = cv2.boundingRect(j)
-                x1, x2, y1, y2 = width * 0.28, width * 0.62, height * 0.59, height * 0.66
-                if (w * h > 64) & (((x <= x1) & (y > y1)) | ((x >= x2) & (y > y1)) | ((x > x1) & (x < x2) & (y > y2))):
+                x1, x2, y1, y2 = width * 0.28, width * 0.62, height * 0.66, height * 0.9
+                if (w * h > 64) & ((x > x1) & (x < x2) & (y > y1) & (y < y2)):
                     rect.append((x, y, w, h))
     for x, y, w, h in rect:
         cv2.rectangle(frame, (x, y), (x + w, y + h), (123, 0, 255), 1)

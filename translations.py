@@ -6,5 +6,6 @@ translation_conf = {
     "fire":"火",
     "rust":"锈迹",
     "cigarette":'吸烟',
+    "rat":'老鼠'
 
 }
