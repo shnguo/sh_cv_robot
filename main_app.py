@@ -138,6 +138,28 @@ async def sendpost(pa: Params):
     return sp.get_result()
 
 
+@app.post("/sendpost_test")
+async def sendpost(pa: Params):
+    model_list = app.state.scene_map.get(pa.scene, None)
+    if not model_list:
+        logger.error("scene is not correct")
+        return {"error": "scene is not correct"}
+    sp = SendPost(
+        pa.source_url,
+        False,
+        pa.scene,
+        model_list,
+        app.state.model_conf,
+        pic_area=pa.pic_area,
+        docker=False,
+        history_info_id=pa.history_info_id,
+        history_type=pa.history_type,
+        model_type=pa.model_type,
+    )
+    sp.run()
+    return sp.get_result()
+
+
 def get_frame(source_url):
     ip = source_url
     cap = cv2.VideoCapture(ip)

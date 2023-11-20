@@ -19,6 +19,7 @@ from PIL import Image
 from clf_conf import clf_conf
 import queue
 from translations import translation_conf
+import urllib.request
 logger = get_logger(os.path.basename(__file__))
 base_path = os.path.dirname(os.path.abspath(__file__))
 develop = os.getenv('GS_DEVELOP')
@@ -100,7 +101,7 @@ class Event_Sender(threading.Thread):
     def run(self):
         self.dispatch[self.scene]()
     
-    def post_report(self,img,result,model_name):
+    def post_report(self,img,result,model_name,coordinate=[]):
         image = ''
         if img.any() and result>-1:
             image=image2base64(img)
@@ -113,6 +114,7 @@ class Event_Sender(threading.Thread):
              "history_info_id":self.kwargs['history_info_id'],
              "history_type":self.kwargs["history_type"],
              'model_type':self.kwargs["model_type"],
+             'coordinate':coordinate
         }
         self.result_queue.put(data)
         if develop:
@@ -126,6 +128,7 @@ class Event_Sender(threading.Thread):
     
     def common_solver(self):
         post_result = -1
+        coordinate = []
         for l in self.result:
             for _r in l:
                 # print(f"{_r}:{l[_r]['detection']}")
@@ -136,9 +139,10 @@ class Event_Sender(threading.Thread):
                         _info_list = _info.split('_')
                         cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
                                     (0, 0, 255),thickness=2)
+                        coordinate.append([int(float(_info_list[2])), int(float(_info_list[3])), int(float(_info_list[4])), int(float(_info_list[5]))])
                         img = cv2AddChineseText(img,translation_conf.get(_r,""),(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255, 0, 0),15)
                         # cv2.putText(img,translation_conf.get(_r,""),(int(float(_info_list[2])),max(int(float(_info_list[3]))-10,0)),cv2.FONT_HERSHEY_COMPLEX, 5,(0, 0, 255),2)
-                    self.post_report(img,post_result,_r) 
+                    self.post_report(img,post_result,_r,coordinate) 
         if  post_result==-1:
             self.post_report(np.array([]),post_result,'')
 
@@ -694,7 +698,12 @@ class SendPost(object):
 
 
     def run_pic(self,file_path):
-        img = cv2.imread(file_path)
+        if file_path.startswith('http'):
+            req = urllib.request.urlopen(file_path)
+            arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
+            img = cv2.imdecode(arr, -1) # 'Load it as it is'
+        else:
+            img = cv2.imread(file_path)
         # I = Image.open(file_path).convert('RGB')
         # img = np.array(I)
         self.detect_and_send(datetime.now().strftime("%Y-%m-%d %H:%M:%S:%f"),img)
