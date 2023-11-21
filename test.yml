@@ -1,0 +1,17 @@
+version: "3"
+services:
+  test_web:
+    image: shnguo/sh_cv_robot_test_pytorchbase
+    ports:
+      - 8002:8002
+    volumes:
+      -  /home/xjw/sh_cv_robot:/sh_cv_robot
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+

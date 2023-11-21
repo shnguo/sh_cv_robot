@@ -223,6 +223,7 @@ class Event_Sender(threading.Thread):
     
     def helmet(self):
         post_result = -1
+        coordinate = []
         target_dict = self.result[0]['helmet']
         if target_dict['img']:
             img = base642image(target_dict['img'])
@@ -234,13 +235,15 @@ class Event_Sender(threading.Thread):
                                     (0, 0, 255),thickness=2)
                     img = cv2AddChineseText(img,"头盔异常",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255, 0, 0),15)
                     post_result=1
+                    coordinate.append([int(float(_info_list[2])), int(float(_info_list[3])), int(float(_info_list[4])), int(float(_info_list[5]))])
                 else:
                     cv2.rectangle(img, (int(_info_list[2]), int(_info_list[3])), (int(_info_list[4]), int(_info_list[5])),
                                     (0, 255, 0),thickness=2)
                     img = cv2AddChineseText(img,"头盔正常",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(0, 255, 0),15)
                     if post_result<0:
                         post_result=0
-            self.post_report(img,post_result,'helmet')
+                    coordinate.append([int(float(_info_list[2])), int(float(_info_list[3])), int(float(_info_list[4])), int(float(_info_list[5]))])
+            self.post_report(img,post_result,'helmet',coordinate)
         else:
             self.post_report(np.array([]),post_result,'helmet')
     
@@ -273,26 +276,34 @@ class Event_Sender(threading.Thread):
     def insulator_broken(self):
         post_result=-1
         target_dict = self.result[0]['insulator']
+        coordinate = []
         if target_dict['img']:
             sign, img = self.insulator(target_dict['detection'],target='broken',img = base642image(target_dict['img']))
+            for _item in target_dict['detection']:
+                _info_list = _item.split('_')
+                coordinate.append([int(float(_info_list[2])), int(float(_info_list[3])), int(float(_info_list[4])), int(float(_info_list[5]))])
             if sign:
                 post_result=1
-                self.post_report(img,post_result,'insulator_broken') 
+                self.post_report(img,post_result,'insulator_broken',coordinate) 
             else:
-                self.post_report(img,0,'insulator_broken')
+                self.post_report(img,0,'insulator_broken',coordinate)
         else:
             self.post_report(np.array([]),post_result,'insulator_broken')
 
     def insulator_stain(self):
         post_result=-1
         target_dict = self.result[0]['insulator']
+        coordinate = []
         if target_dict['img']:
             sign, img = self.insulator(target_dict['detection'],target='stain',img = base642image(target_dict['img']))
+            for _item in target_dict['detection']:
+                _info_list = _item.split('_')
+                coordinate.append([int(float(_info_list[2])), int(float(_info_list[3])), int(float(_info_list[4])), int(float(_info_list[5]))])
             if sign:
                 post_result=1
-                self.post_report(img,post_result,'insulator_stain') 
+                self.post_report(img,post_result,'insulator_stain',coordinate) 
             else:
-                self.post_report(img,0,'insulator_stain')
+                self.post_report(img,0,'insulator_stain',coordinate)
         else:
             self.post_report(np.array([]),post_result,'insulator_stain')
 
@@ -505,6 +516,7 @@ class Event_Sender(threading.Thread):
             self.post_report(np.array([]),-1,'door_yolo')
 
     def arm_leg_solver(self):
+        coordinate = []
         post_result=-1
         target_dict = self.result[0]['arm_leg']
         if target_dict['img']:
@@ -516,11 +528,13 @@ class Event_Sender(threading.Thread):
                                     (0, 0, 255),thickness=2)
                     img = cv2AddChineseText(img,"胳膊",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255,0 , 0),15)
                     post_result=1
+                    coordinate.append([int(float(_info_list[2])), int(float(_info_list[3])), int(float(_info_list[4])), int(float(_info_list[5]))])
                 else:
                     cv2.rectangle(img, (int(float(_info_list[2])), int(float(_info_list[3]))), (int(float(_info_list[4])), int(float(_info_list[5]))),
                                     (0, 255, 0),thickness=2)
                     img = cv2AddChineseText(img,"大腿",(int(float(_info_list[2])),max(int(float(_info_list[3]))-18,0)),(255, 0, 0),15)
                     post_result=1
+                    coordinate.append([int(float(_info_list[2])), int(float(_info_list[3])), int(float(_info_list[4])), int(float(_info_list[5]))])
             self.post_report(img,post_result,'arm_leg')
         else:
             self.post_report(np.array([]),-1,'arm_leg')
